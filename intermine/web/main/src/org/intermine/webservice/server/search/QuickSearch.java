@@ -26,10 +26,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.intermine.api.InterMineAPI;
 import org.intermine.api.bag.BagManager;
-import org.intermine.api.lucene.KeywordSearch;
-import org.intermine.api.lucene.KeywordSearchFacet;
-import org.intermine.api.lucene.KeywordSearchFacetData;
-import org.intermine.api.lucene.ResultsWithFacets;
 import org.intermine.api.profile.InterMineBag;
 import org.intermine.api.profile.Profile;
 import org.intermine.web.context.InterMineContext;
@@ -46,8 +42,6 @@ import org.intermine.webservice.server.output.Output;
 import org.intermine.webservice.server.output.StreamedOutput;
 import org.intermine.webservice.server.output.XMLFormatter;
 
-import com.browseengine.bobo.api.BrowseFacet;
-
 /**
  * A service that runs key-word searches.
  * @author Alex Kalderimis
@@ -57,8 +51,6 @@ public class QuickSearch extends JSONService
 {
 
     private static final Logger LOG = Logger.getLogger(QuickSearch.class);
-
-    private static final String FACET_PREFIX = "facet_";
     private static final int PREFIX_LEN = FACET_PREFIX.length();
 
     private Map<String, Map<String, Object>> headerObjs
@@ -82,26 +74,10 @@ public class QuickSearch extends JSONService
         WebConfig wc = InterMineContext.getWebConfig();
 
         QuickSearchRequest input = new QuickSearchRequest();
-        Vector<KeywordSearchFacetData> facets = KeywordSearch.getFacets();
-        Map<String, String> facetValues = getFacetValues(facets);
-
-        ResultsWithFacets results = KeywordSearch.runBrowseWithFacets(
-                im, input.searchTerm, input.offset, facetValues, input.getListIds());
+        SearchResult results = KeywordSearch.doFilteredSearch(input.searchTerm);
 
         Collection<KeywordSearchResult> searchResultsParsed =
                 SearchUtils.parseResults(im, wc, results.getHits());
-
-        if (input.getIncludeFacets()) {
-            Map<String, Object> facetData = new HashMap<String, Object>();
-            for (KeywordSearchFacet kwsf: results.getFacets()) {
-                Map<String, Integer> sfData = new HashMap<String, Integer>();
-                for (BrowseFacet bf: kwsf.getItems()) {
-                    sfData.put(bf.getValue(), bf.getFacetValueHitCount());
-                }
-                facetData.put(kwsf.getField(), sfData);
-            }
-            headerObjs.put("facets", facetData);
-        }
 
         QuickSearchResultProcessor processor = getProcessor();
         Iterator<KeywordSearchResult> it = searchResultsParsed.iterator();
@@ -124,31 +100,6 @@ public class QuickSearch extends JSONService
         return attributes;
     }
 
-    private Map<String, String> getFacetValues(Vector<KeywordSearchFacetData> facets) {
-        HashMap<String, String> facetValues = new HashMap<String, String>();
-    PARAM_LOOP:
-        for (@SuppressWarnings("unchecked")
-            Enumeration<String> params = request.getParameterNames();
-                params.hasMoreElements();) {
-            String param = params.nextElement();
-            String value = request.getParameter(param);
-            if (!param.startsWith(FACET_PREFIX) || StringUtils.isBlank(value)) {
-                continue;
-            }
-            String facetField = param.substring(PREFIX_LEN);
-            if (StringUtils.isBlank(facetField)) {
-                continue;
-            }
-            for (KeywordSearchFacetData facet: facets) {
-                if (facetField.equals(facet.getField())) {
-                    facetValues.put(facetField, value);
-                    continue PARAM_LOOP;
-                }
-            }
-        }
-        return facetValues;
-    }
-
     private class QuickSearchRequest
     {
 
@@ -156,7 +107,6 @@ public class QuickSearch extends JSONService
         private final int offset;
         private final Integer limit;
         private final String searchBag;
-        private final boolean includeFacets;
 
         QuickSearchRequest() {
 
@@ -167,8 +117,6 @@ public class QuickSearch extends JSONService
                 searchTerm = query;
             }
             LOG.debug(String.format("SEARCH TERM: '%s'", searchTerm));
-
-            includeFacets = !Boolean.valueOf(request.getParameter("nofacets"));
 
             String limitParam = request.getParameter("size");
             Integer lim = null;
@@ -202,9 +150,6 @@ public class QuickSearch extends JSONService
             return i < limit;
         }
 
-        public boolean getIncludeFacets() {
-            return includeFacets;
-        }
 
         public String toString() {
             return String.format("<%s searchTerm=%s offset=%d>",

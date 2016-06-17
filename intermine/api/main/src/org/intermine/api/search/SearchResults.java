@@ -24,6 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.SolrServerException;
+
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
 import org.intermine.api.profile.TagManager;
@@ -31,7 +37,8 @@ import org.intermine.api.profile.TagManagerFactory;
 import org.intermine.template.TemplateQuery;
 
 /**
- * Previously lucene based search replaced by Solr
+ * Search engine results based on Apache Solr
+ *   Previously based on lucene
  *
  * @author Alex Kalderimis
  * @author Thomas Riley
@@ -142,12 +149,11 @@ public final class SearchResults implements Iterable<SearchResult>
      * @param target Information about the scope and type of items to receive.
      * @param profileRepo The repository of the user who wants to find something.
      * @return A set of search results.
-     * @throws ParseException If the query string cannot be parsed.
      * @throws IOException If there is an issue opening the indices.
+     * @throws SolrServerException If there is an issue opening the indices.
      */
-    private static SearchResults doFilteredSearch(
-            String origQueryString, SearchTarget target, SearchRepository profileRepo)
-        throws ParseException, IOException {
+    private static SearchResults doFilteredSearch(String origQueryString)
+        throws IOException, SolrServerException {
 
         Map<WebSearchable, String> highlightedDescMap = new HashMap<WebSearchable, String>();
 
@@ -155,20 +161,11 @@ public final class SearchResults implements Iterable<SearchResult>
 
         LOG.info("Searching " + target + " for "
                 + " was:" + origQueryString + " now:" + queryString);
-        long time = System.currentTimeMillis();
-
-        org.apache.lucene.search.Query query;
 
         String urlString = "http://localhost:8983/solr/techproducts";
-        SolrClient solr = new HttpSolrClient.Builder(urlString).build();
+        SolrClient client = new HttpSolrClient(urlString);
 
-        SolrQuery query = new SolrQuery();
-        query.setQuery(queryString);
-
-        QueryResponse response = solr.query(query);
-        time = System.currentTimeMillis() - time;
-        LOG.info("Found " + topDocs.totalHits + " document(s) that matched query '"
-                + queryString + "' in " + time + " milliseconds:");
+        QueryResponse resp = client.query(new SolrQuery(queryString));
 
         return null;
     }
