@@ -26,17 +26,14 @@ import org.apache.struts.action.ActionForward;
 import org.apache.struts.action.ActionMapping;
 import org.apache.struts.action.ActionMessage;
 import org.intermine.api.InterMineAPI;
-import org.intermine.api.lucene.KeywordSearch;
 import org.intermine.api.profile.InterMineBag;
 import org.intermine.api.profile.Profile;
+import org.intermine.api.search.SearchResults;
 import org.intermine.api.util.NameUtil;
 import org.intermine.web.logic.session.SessionMethods;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import com.browseengine.bobo.api.BrowseHit;
-import com.browseengine.bobo.api.BrowseResult;
 
 /**
  * Saves selected items with InterMine ids and a Type in a new bag or combines
@@ -73,14 +70,13 @@ public class SaveFromIdsToBagAction extends InterMineAction
                 Map<String, String> facetMap = jsonToJava(jsonRequest);
                 int offset = 0;
                 boolean pagination = false;
-                BrowseResult result = KeywordSearch.runBrowseSearch(searchTerm, offset, facetMap,
-                        new ArrayList<Integer>(), pagination, listSize);
+                SearchResults result = SearchResults.doFilteredSearch(searchTerm);
 
                 if (result != null) {
                     LOG.error("processing result! " + result.getNumHits());
-                    BrowseHit[] browseHits = result.getHits();
-                    LOG.error("browseHits " + browseHits.length);
-                    idSet = KeywordSearch.getObjectIds(browseHits);
+                    ArrayList<String> browseHits = result.getHits();
+                    LOG.error("browseHits " + browseHits.size());
+                    idSet = SearchResults.getObjectIds(result);
                     LOG.error("number of IDs " + idSet.size());
 
                 } else {

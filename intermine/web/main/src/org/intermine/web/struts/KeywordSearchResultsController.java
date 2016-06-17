@@ -36,12 +36,9 @@ import org.apache.struts.action.ActionMapping;
 import org.apache.struts.tiles.ComponentContext;
 import org.apache.struts.tiles.actions.TilesAction;
 import org.intermine.api.InterMineAPI;
-import org.intermine.api.lucene.KeywordSearch;
-import org.intermine.api.lucene.KeywordSearchFacet;
-import org.intermine.api.lucene.KeywordSearchFacetData;
-import org.intermine.api.lucene.ResultsWithFacets;
 import org.intermine.api.profile.InterMineBag;
 import org.intermine.api.profile.Profile;
+import org.intermine.api.search.SearchResults;
 import org.intermine.web.logic.config.WebConfig;
 import org.intermine.web.logic.session.SessionMethods;
 import org.intermine.web.search.KeywordSearchResult;
@@ -85,13 +82,6 @@ public class KeywordSearchResultsController extends TilesAction
         final InterMineAPI im = SessionMethods.getInterMineAPI(request.getSession());
         ServletContext servletContext = request.getSession().getServletContext();
         String contextPath = servletContext.getRealPath("/");
-        synchronized (this) {
-            // if this decreases performance too much we might have to change it
-            intialiseLogging(SessionMethods.getWebProperties(servletContext).getProperty(
-                    "project.title", "unknown").toLowerCase());
-        }
-        KeywordSearch.initKeywordSearch(im, contextPath);
-        Vector<KeywordSearchFacetData> facets = KeywordSearch.getFacets();
         int totalHits = 0;
 
         //track the keyword search
@@ -107,22 +97,14 @@ public class KeywordSearchResultsController extends TilesAction
         }
         List<Integer> ids = getBagIds(im, request, searchBag);
         int offset = getOffset(request);
-        Map<String, String> facetValues = getFacetValues(request, facets);
         LOG.debug("Initializing took " + (System.currentTimeMillis() - time) + " ms");
 
 
         long searchTime = System.currentTimeMillis();
 
-        ResultsWithFacets results =
-                KeywordSearch.runBrowseWithFacets(im, searchTerm, offset, facetValues, ids);
+        SearchResults results = SearchResults.doFilteredSearch(searchTerm);
+        totalHits = results.getNumHits();
 
-        Collection<KeywordSearchResult> searchResultsParsed =
-                SearchUtils.parseResults(im, wc, results.getHits());
-
-        Collection<KeywordSearchFacet> searchResultsFacets = results.getFacets();
-        totalHits = results.getTotalHits();
-
-        logSearch(searchTerm, totalHits, time, offset, searchTime, facetValues, searchBag);
         LOG.debug("SEARCH RESULTS FOR " + searchTerm  + ": " + totalHits);
 
         // don't display *:* in search box
@@ -131,32 +113,25 @@ public class KeywordSearchResultsController extends TilesAction
         }
 
         // there are needed in the form too so we have to use request (i think...)
-        request.setAttribute("searchResults", searchResultsParsed);
+        request.setAttribute("searchResults", results);
         request.setAttribute("searchTerm", searchTerm);
         request.setAttribute("searchBag", searchBag);
-        request.setAttribute("searchFacetValues", facetValues);
 
-        // used for re-running the search in case of creating a list for ALL results
-        request.setAttribute("jsonFacets", javaMapToJSON(facetValues));
 
         context.putAttribute("searchResults", request.getAttribute("searchResults"));
         context.putAttribute("searchTerm", request.getAttribute("searchTerm"));
         context.putAttribute("searchBag", request.getAttribute("searchBag"));
-        context.putAttribute("searchFacetValues", request.getAttribute("searchFacetValues"));
-        context.putAttribute("jsonFacets", request.getAttribute("jsonFacets"));
 
         // pagination
         context.putAttribute("searchOffset", Integer.valueOf(offset));
-        context.putAttribute("searchPerPage", Integer.valueOf(KeywordSearch.PER_PAGE));
+        context.putAttribute("searchPerPage", Integer.valueOf(10));
         context.putAttribute("searchTotalHits", Integer.valueOf(totalHits));
 
+        //TODO
+        // used for re-running the search in case of creating a list for ALL results
         // facet lists
-        context.putAttribute("searchFacets", searchResultsFacets);
-
         // facet values
-        for (Entry<String, String> facetValue : facetValues.entrySet()) {
-            context.putAttribute("facet_" + facetValue.getKey(), facetValue.getValue());
-        }
+        
 
         // time for debugging
         long totalTime = System.currentTimeMillis() - time;
@@ -192,93 +167,5 @@ public class KeywordSearchResultsController extends TilesAction
             }
         }
         return ids;
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, String> getFacetValues(HttpServletRequest request,
-            Vector<KeywordSearchFacetData> facets) {
-        HashMap<String, String> facetValues = new HashMap<String, String>();
-        // if this is a new search (searchSubmit set) only keep facets if
-        // searchSubmitRestricted used
-        if (StringUtils.isBlank(request.getParameter("searchSubmit"))
-                || !StringUtils.isBlank(request.getParameter("searchSubmitRestricted"))) {
-            // find all parameters that begin with facet_ and have a
-            // value, add them to map
-            for (Entry<String, String[]> requestParameter
-                    : ((Map<String, String[]>) request.getParameterMap()).entrySet()) {
-                if (requestParameter.getKey().startsWith("facet_")
-                        && requestParameter.getValue().length > 0
-                        && !StringUtils.isBlank(requestParameter.getValue()[0])) {
-                    String facetField = requestParameter.getKey().substring("facet_".length());
-                    boolean found = false;
-                    for (KeywordSearchFacetData keywordSearchFacetData : facets) {
-                        if (facetField.equals(keywordSearchFacetData.getField())) {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found) {
-                        facetValues.put(facetField, requestParameter.getValue()[0]);
-                    }
-                }
-            }
-
-            for (Entry<String, String> facetValue : facetValues.entrySet()) {
-                LOG.debug("SEARCH FACET: " + facetValue.getKey() + " = " + facetValue.getValue());
-            }
-        }
-        return facetValues;
-    }
-
-    private void logSearch(String searchTerm, int totalHits, long time, int offset,
-            long timeSearch, Map<String, String> facetValues, String searchBag) {
-        // log this search to search log
-        StringBuilder searchLogLine = new StringBuilder();
-        searchLogLine.append("query=").append(searchTerm).append("; ");
-        searchLogLine.append("hits=").append(totalHits).append("; ");
-        searchLogLine.append("timeTotal=").append(System.currentTimeMillis() - time).append(
-                "; ");
-        searchLogLine.append("timeSearch=").append(timeSearch).append("; ");
-        searchLogLine.append("offset=").append(offset).append("; ");
-        searchLogLine.append("restrictions=");
-        for (Entry<String, String> facetValue : facetValues.entrySet()) {
-            searchLogLine.append(facetValue.getKey()).append(":'")
-                    .append(facetValue.getValue()).append("', ");
-        }
-        searchLogLine.append("; ");
-        searchLogLine.append("bag=").append(searchBag).append(";");
-        searchLog.debug(searchLogLine);
-    }
-
-    private void intialiseLogging(String projectName) throws IOException {
-        if (searchLog == null) {
-            searchLog = Logger.getLogger(KeywordSearchResultsController.class.getName()
-                        + ".searches");
-            String logFileName = projectName + "_searches.log";
-            Layout layout = new PatternLayout("%d{ISO8601}\t%m%n");
-            try {
-                RollingFileAppender appender = new RollingFileAppender(layout, logFileName, true);
-                appender.setMaximumFileSize(102400); // 100kb
-                appender.setMaxBackupIndex(10);
-                searchLog.addAppender(appender);
-            } catch (FileNotFoundException e) {
-                LOG.error("Could not open searches log", e);
-                return;
-            }
-            LOG.info("Logging searches to: " + logFileName);
-        }
-    }
-
-    private JSONObject javaMapToJSON(Map<String, String> facets) throws JSONException {
-        JSONObject jo = new JSONObject();
-        JSONArray ja = new JSONArray();
-        for (Map.Entry<String, String> entry : facets.entrySet()) {
-            JSONObject facet = new JSONObject();
-            facet.put("facetName", entry.getKey());
-            facet.put("facetValue", entry.getValue());
-            ja.put(facet);
-        }
-        jo.put("facets", ja);
-        return jo;
     }
 }

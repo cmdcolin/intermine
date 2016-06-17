@@ -133,10 +133,7 @@ public class WebSearchableListController extends TilesAction
 
         Map<String, Object> wsMapForJS = new HashMap<String, Object>();
 
-        SearchResults.filterOutInvalidTemplates(filteredWebSearchables);
-        for (String wsName: (Set<String>) filteredWebSearchables.keySet()) {
-            wsMapForJS.put(wsName, new Integer(1));
-        }
+        
 
         Profile profile = SessionMethods.getProfile(session);
         request.setAttribute("userWebSearchables", profile.getWebSearchablesByType(type));

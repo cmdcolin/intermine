@@ -152,14 +152,14 @@ public final class SearchResults implements Iterable<SearchResult>
      * @throws IOException If there is an issue opening the indices.
      * @throws SolrServerException If there is an issue opening the indices.
      */
-    private static SearchResults doFilteredSearch(String origQueryString)
+    public static SearchResults doFilteredSearch(String origQueryString)
         throws IOException, SolrServerException {
 
         Map<WebSearchable, String> highlightedDescMap = new HashMap<WebSearchable, String>();
 
         String queryString = prepareQueryString(origQueryString);
 
-        LOG.info("Searching " + target + " for "
+        LOG.info("Searching query "
                 + " was:" + origQueryString + " now:" + queryString);
 
         String urlString = "http://localhost:8983/solr/techproducts";
@@ -168,5 +168,14 @@ public final class SearchResults implements Iterable<SearchResult>
         QueryResponse resp = client.query(new SolrQuery(queryString));
 
         return null;
+    }
+    public ArrayList<String> getHits() {
+        return new ArrayList<String>();
+    }
+    public Integer getNumHits() {
+        return 0;
+    }
+    public static Set<Integer> getObjectIds(SearchResults result) {
+        return new HashSet<Integer>();
     }
 }

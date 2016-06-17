@@ -40,7 +40,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.apache.lucene.queryParser.ParseException;
 import org.apache.struts.Globals;
 import org.apache.struts.util.MessageResources;
 import org.directwebremoting.WebContext;
@@ -65,7 +64,6 @@ import org.intermine.api.profile.UserAlreadyShareBagException;
 import org.intermine.api.profile.UserNotFoundException;
 import org.intermine.api.query.WebResultsExecutor;
 import org.intermine.api.results.WebTable;
-import org.intermine.api.search.SearchRepository;
 import org.intermine.api.search.SearchResults;
 import org.intermine.api.search.SearchTarget;
 import org.intermine.api.search.TagFilter;
@@ -562,15 +560,11 @@ public class AjaxServices
             final InterMineAPI im = SessionMethods.getInterMineAPI(session);
             final ProfileManager pm = im.getProfileManager();
             final Profile profile = SessionMethods.getProfile(session);
-            final SearchRepository userRepository = profile.getSearchRepository();
             final SearchTarget target = new SearchTarget(scope, type);
             final SearchResults results;
 
             try {
-                results = SearchResults.runLuceneSearch(filterText, target, userRepository);
-            } catch (ParseException e) {
-                LOG.error("couldn't run lucene filter", e);
-                return Arrays.asList(callId);
+                results = SearchResults.doFilteredSearch(filterText);
             } catch (IOException e) {
                 LOG.error("couldn't run lucene filter", e);
                 return Arrays.asList(callId);

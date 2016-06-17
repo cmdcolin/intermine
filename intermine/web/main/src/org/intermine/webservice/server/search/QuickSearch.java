@@ -28,6 +28,8 @@ import org.intermine.api.InterMineAPI;
 import org.intermine.api.bag.BagManager;
 import org.intermine.api.profile.InterMineBag;
 import org.intermine.api.profile.Profile;
+import org.intermine.api.search.SearchResults;
+import org.intermine.api.search.SearchResult;
 import org.intermine.web.context.InterMineContext;
 import org.intermine.web.logic.RequestUtil;
 import org.intermine.web.logic.config.WebConfig;
@@ -51,7 +53,6 @@ public class QuickSearch extends JSONService
 {
 
     private static final Logger LOG = Logger.getLogger(QuickSearch.class);
-    private static final int PREFIX_LEN = FACET_PREFIX.length();
 
     private Map<String, Map<String, Object>> headerObjs
         = new HashMap<String, Map<String, Object>>();
@@ -70,22 +71,8 @@ public class QuickSearch extends JSONService
     @Override
     protected void execute() throws Exception {
         String contextPath = servletContext.getRealPath("/");
-        KeywordSearch.initKeywordSearch(im, contextPath);
-        WebConfig wc = InterMineContext.getWebConfig();
-
         QuickSearchRequest input = new QuickSearchRequest();
-        SearchResult results = KeywordSearch.doFilteredSearch(input.searchTerm);
-
-        Collection<KeywordSearchResult> searchResultsParsed =
-                SearchUtils.parseResults(im, wc, results.getHits());
-
-        QuickSearchResultProcessor processor = getProcessor();
-        Iterator<KeywordSearchResult> it = searchResultsParsed.iterator();
-        for (int i = 0; input.wantsMore(i) && it.hasNext(); i++) {
-            KeywordSearchResult kwsr = it.next();
-            output.addResultItem(processor.formatResult(kwsr,
-                    input.wantsMore(i + 1) && it.hasNext()));
-        }
+        SearchResults results = SearchResults.doFilteredSearch(input.searchTerm);
     }
 
     @Override
