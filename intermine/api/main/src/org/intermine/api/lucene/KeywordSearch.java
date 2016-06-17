@@ -73,23 +73,7 @@ import org.intermine.objectstore.ObjectStoreException;
 import org.intermine.objectstore.intermine.ObjectStoreInterMineImpl;
 import org.intermine.sql.Database;
 import org.intermine.util.ObjectPipe;
-//
-//import com.browseengine.bobo.api.BoboBrowser;
-//import com.browseengine.bobo.api.BoboIndexReader;
-//import com.browseengine.bobo.api.Browsable;
-//import com.browseengine.bobo.api.BrowseException;
-//import com.browseengine.bobo.api.BrowseHit;
-//import com.browseengine.bobo.api.BrowseRequest;
-//import com.browseengine.bobo.api.BrowseResult;
-//import com.browseengine.bobo.api.BrowseSelection;
-//import com.browseengine.bobo.api.FacetAccessible;
-//import com.browseengine.bobo.api.FacetSpec;
-//import com.browseengine.bobo.api.FacetSpec.FacetSortSpec;
-//import com.browseengine.bobo.facets.FacetHandler;
-//import com.browseengine.bobo.facets.impl.MultiValueFacetHandler;
-//import com.browseengine.bobo.facets.impl.PathFacetHandler;
-//import com.browseengine.bobo.facets.impl.SimpleFacetHandler;
-//
+
 /**
  * Allows for full-text searches over all metadata using the apache lucene
  * engine.
@@ -117,7 +101,6 @@ public final class KeywordSearch
     private static final Logger LOG = Logger.getLogger(KeywordSearch.class);
 
     private static IndexReader reader = null;
-    private static BoboIndexReader boboIndexReader = null;
     private static ObjectPipe<Document> indexingQueue = new ObjectPipe<Document>(100000);
     private static LuceneIndexContainer index = null;
 
@@ -127,7 +110,6 @@ public final class KeywordSearch
     private static Set<Class<? extends InterMineObject>> ignoredClasses;
     private static Map<Class<? extends InterMineObject>, Set<String>> ignoredFields;
     private static Map<ClassDescriptor, Float> classBoost;
-    private static Vector<KeywordSearchFacetData> facets;
     private static boolean debugOutput;
     private static Map<String, String> attributePrefixes = null;
 
@@ -145,7 +127,6 @@ public final class KeywordSearch
         ignoredClasses = new HashSet<Class<? extends InterMineObject>>();
         classBoost = new HashMap<ClassDescriptor, Float>();
         ignoredFields = new HashMap<Class<? extends InterMineObject>, Set<String>>();
-        facets = new Vector<KeywordSearchFacetData>();
         debugOutput = true;
 
         // load config file to figure out special classes
@@ -223,21 +204,6 @@ public final class KeywordSearch
                             LOG.error("keyword_search.properties: classDescriptor for '"
                                     + classToIndex + "' not found!");
                         }
-                    } else if (key.startsWith("index.facet.single.")) {
-                        String facetName = key.substring("index.facet.single.".length());
-                        String facetField = value;
-                        facets.add(new KeywordSearchFacetData(facetField, facetName,
-                                KeywordSearchFacetType.SINGLE));
-                    } else if (key.startsWith("index.facet.multi.")) {
-                        String facetName = key.substring("index.facet.multi.".length());
-                        String facetField = value;
-                        facets.add(new KeywordSearchFacetData(facetField, facetName,
-                                KeywordSearchFacetType.MULTI));
-                    } else if (key.startsWith("index.facet.path.")) {
-                        String facetName = key.substring("index.facet.path.".length());
-                        String[] facetFields = value.split(" ");
-                        facets.add(new KeywordSearchFacetData(facetFields, facetName,
-                                KeywordSearchFacetType.PATH));
                     } else if (key.startsWith("index.boost.")) {
                         String classToBoost = key.substring("index.boost.".length());
                         ClassDescriptor cld = os.getModel().getClassDescriptorByName(classToBoost);
@@ -276,12 +242,6 @@ public final class KeywordSearch
                 .entrySet()) {
             LOG.debug("- " + specialReference.getKey() + " = "
                     + Arrays.toString(specialReference.getValue()));
-        }
-
-        LOG.debug("Indexing - Facets:");
-        for (KeywordSearchFacetData facet : facets) {
-            LOG.debug("- field = " + facet.getField() + ", name = " + facet.getName() + ", type = "
-                    + facet.getType().toString());
         }
 
         LOG.debug("Indexing with and without attribute prefixes:");
@@ -333,31 +293,6 @@ public final class KeywordSearch
 
             if (reader == null) {
                 reader = IndexReader.open(index.getDirectory(), true);
-            }
-
-            if (boboIndexReader == null) {
-                // prepare faceting
-                HashSet<FacetHandler<?>> facetHandlers = new HashSet<FacetHandler<?>>();
-                facetHandlers.add(new SimpleFacetHandler("Category"));
-                for (KeywordSearchFacetData facet : facets) {
-                    if (facet.getType().equals(KeywordSearchFacetType.MULTI)) {
-                        facetHandlers.add(new MultiValueFacetHandler(facet.getField()));
-                    } else if (facet.getType().equals(KeywordSearchFacetType.PATH)) {
-                        facetHandlers.add(new PathFacetHandler("path_"
-                                + facet.getName().toLowerCase()));
-                    } else {
-                        facetHandlers.add(new SimpleFacetHandler(facet.getField()));
-                    }
-                }
-
-                boboIndexReader = BoboIndexReader.getInstance(reader, facetHandlers);
-
-                LOG.debug("Fields:"
-                        + Arrays.toString(boboIndexReader.getFieldNames(FieldOption.ALL)
-                                .toArray()));
-                LOG.debug("Indexed fields:"
-                        + Arrays.toString(boboIndexReader.getFieldNames(FieldOption.INDEXED)
-                                .toArray()));
             }
         } catch (CorruptIndexException e) {
             LOG.error(e);
@@ -469,28 +404,6 @@ public final class KeywordSearch
         return matches;
     }
 
-    /**
-     * @param result search result
-     * @param facetVector facets for search results
-     * @param facetValues values for facets
-     * @return search result for given facet
-     */
-    public static Vector<KeywordSearchFacet> parseFacets(BrowseResult result,
-            Vector<KeywordSearchFacetData> facetVector, Map<String, String> facetValues) {
-        long time = System.currentTimeMillis();
-        Vector<KeywordSearchFacet> searchResultsFacets = new Vector<KeywordSearchFacet>();
-        for (KeywordSearchFacetData facet : facetVector) {
-            FacetAccessible boboFacet = result.getFacetMap().get(facet.getField());
-            if (boboFacet != null) {
-                searchResultsFacets.add(new KeywordSearchFacet(facet.getField(), facet
-                        .getName(), facetValues.get(facet.getField()), boboFacet
-                        .getFacets()));
-            }
-        }
-        LOG.debug("Parsing " + searchResultsFacets.size() + " facets took "
-                + (System.currentTimeMillis() - time) + " ms");
-        return searchResultsFacets;
-    }
 
     /**
      * @param browseHits search results
@@ -560,6 +473,39 @@ public final class KeywordSearch
             Map<String, String> facetValues,
             List<Integer> ids)
         throws ObjectStoreException {
+
+
+        Analyzer analyzer = new StandardAnalyzer();
+
+        // Store the index in memory:
+        Directory directory = new RAMDirectory();
+        // To store an index on disk, use this instead:
+        //Directory directory = FSDirectory.open("/tmp/testindex");
+        IndexWriterConfig config = new IndexWriterConfig(analyzer);
+        IndexWriter iwriter = new IndexWriter(directory, config);
+        Document doc = new Document();
+        String text = "This is the text to be indexed.";
+        doc.add(new Field("fieldname", text, TextField.TYPE_STORED));
+        iwriter.addDocument(doc);
+        iwriter.close();
+        
+        // Now search the index:
+        DirectoryReader ireader = DirectoryReader.open(directory);
+        IndexSearcher isearcher = new IndexSearcher(ireader);
+        // Parse a simple query that searches for "text":
+        QueryParser parser = new QueryParser("fieldname", analyzer);
+        Query query = parser.parse("text");
+        ScoreDoc[] hits = isearcher.search(query, null, 1000).scoreDocs;
+        assertEquals(1, hits.length);
+        // Iterate through the results:
+        for (int i = 0; i < hits.length; i++) {
+          Document hitDoc = isearcher.doc(hits[i].doc);
+          assertEquals("This is the text to be indexed.", hitDoc.get("fieldname"));
+        }
+        ireader.close();
+        directory.close();
+
+
         // last parameter used only when creating lists
         BrowseResult results = runBrowseSearch(searchString, offset, facetValues, ids, 0);
         Collection<KeywordSearchFacet> searchResultsFacets = Collections.emptySet();
@@ -1100,29 +1046,6 @@ public final class KeywordSearch
         return facets;
     }
 
-    /**
-     * delete the directory used for the index (used in postprocessing)
-     */
-    public static void deleteIndexDirectory() {
-        if (index != null && "FSDirectory".equals(index.getDirectoryType())) {
-            File tempFile = ((FSDirectory) index.getDirectory()).getFile();
-            LOG.info("Deleting index directory: " + tempFile.getAbsolutePath());
-
-            if (tempFile.exists()) {
-                String[] files = tempFile.list();
-                for (int i = 0; i < files.length; i++) {
-                    LOG.debug("Deleting index file: " + files[i]);
-                    new File(tempFile.getAbsolutePath() + File.separator + files[i]).delete();
-                }
-                tempFile.delete();
-                LOG.warn("Deleted index directory!");
-            } else {
-                LOG.warn("Index directory does not exist!");
-            }
-
-            index = null;
-        }
-    }
 
     /**
      * set all the variables to NULL
