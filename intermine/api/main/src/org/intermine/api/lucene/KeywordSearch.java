@@ -73,23 +73,23 @@ import org.intermine.objectstore.ObjectStoreException;
 import org.intermine.objectstore.intermine.ObjectStoreInterMineImpl;
 import org.intermine.sql.Database;
 import org.intermine.util.ObjectPipe;
-
-import com.browseengine.bobo.api.BoboBrowser;
-import com.browseengine.bobo.api.BoboIndexReader;
-import com.browseengine.bobo.api.Browsable;
-import com.browseengine.bobo.api.BrowseException;
-import com.browseengine.bobo.api.BrowseHit;
-import com.browseengine.bobo.api.BrowseRequest;
-import com.browseengine.bobo.api.BrowseResult;
-import com.browseengine.bobo.api.BrowseSelection;
-import com.browseengine.bobo.api.FacetAccessible;
-import com.browseengine.bobo.api.FacetSpec;
-import com.browseengine.bobo.api.FacetSpec.FacetSortSpec;
-import com.browseengine.bobo.facets.FacetHandler;
-import com.browseengine.bobo.facets.impl.MultiValueFacetHandler;
-import com.browseengine.bobo.facets.impl.PathFacetHandler;
-import com.browseengine.bobo.facets.impl.SimpleFacetHandler;
-
+//
+//import com.browseengine.bobo.api.BoboBrowser;
+//import com.browseengine.bobo.api.BoboIndexReader;
+//import com.browseengine.bobo.api.Browsable;
+//import com.browseengine.bobo.api.BrowseException;
+//import com.browseengine.bobo.api.BrowseHit;
+//import com.browseengine.bobo.api.BrowseRequest;
+//import com.browseengine.bobo.api.BrowseResult;
+//import com.browseengine.bobo.api.BrowseSelection;
+//import com.browseengine.bobo.api.FacetAccessible;
+//import com.browseengine.bobo.api.FacetSpec;
+//import com.browseengine.bobo.api.FacetSpec.FacetSortSpec;
+//import com.browseengine.bobo.facets.FacetHandler;
+//import com.browseengine.bobo.facets.impl.MultiValueFacetHandler;
+//import com.browseengine.bobo.facets.impl.PathFacetHandler;
+//import com.browseengine.bobo.facets.impl.SimpleFacetHandler;
+//
 /**
  * Allows for full-text searches over all metadata using the apache lucene
  * engine.
@@ -399,117 +399,6 @@ public final class KeywordSearch
 
     }
 
-    /**
-     * writes index and associated directory to the database using the metadatamanager.
-     *
-     * @param os intermine objectstore
-     * @param classKeys map of classname to key field descriptors (from InterMineAPI)
-     */
-    public static void saveIndexToDatabase(ObjectStore os,
-            Map<String, List<FieldDescriptor>> classKeys) {
-        try {
-            if (index == null) {
-                createIndex(os, classKeys);
-            }
-
-            LOG.debug("Deleting previous search index dirctory blob from db...");
-            long startTime = System.currentTimeMillis();
-            Database db = ((ObjectStoreInterMineImpl) os).getDatabase();
-            boolean blobExisted = MetadataManager.deleteLargeBinary(db,
-                    MetadataManager.SEARCH_INDEX);
-            if (blobExisted) {
-                LOG.debug("Deleting previous search index blob from db took: "
-                        + (System.currentTimeMillis() - startTime) + ".");
-            } else {
-                LOG.debug("No previous search index blob found in db");
-            }
-
-            LOG.debug("Saving search index information to database...");
-            writeObjectToDB(os, MetadataManager.SEARCH_INDEX, index);
-            LOG.debug("Successfully saved search index information to database.");
-
-            // if we have a FSDirectory we need to zip and save that separately
-            if ("FSDirectory".equals(index.getDirectoryType())) {
-                ZipOutputStream zipOut = null;
-                final int bufferSize = 2048;
-
-                try {
-                    LOG.debug("Zipping up FSDirectory...");
-
-                    LOG.debug("Deleting previous search index dirctory blob from db...");
-                    startTime = System.currentTimeMillis();
-                    blobExisted = MetadataManager.deleteLargeBinary(db,
-                            MetadataManager.SEARCH_INDEX_DIRECTORY);
-                    if (blobExisted) {
-                        LOG.debug("Deleting previous search index directory blob from db took: "
-                                + (System.currentTimeMillis() - startTime) + ".");
-                    } else {
-                        LOG.debug("No previous search index directory blob found in db");
-                    }
-                    LargeObjectOutputStream streamOut =
-                            MetadataManager.storeLargeBinary(db,
-                                    MetadataManager.SEARCH_INDEX_DIRECTORY);
-
-                    zipOut = new ZipOutputStream(streamOut);
-
-                    byte[] data = new byte[bufferSize];
-
-                    // get a list of files from current directory
-                    File dir = ((FSDirectory) index.getDirectory()).getFile();
-                    String[] files = dir.list();
-
-                    for (int i = 0; i < files.length; i++) {
-                        File file = new File(dir.getAbsolutePath() + File.separator + files[i]);
-                        LOG.debug("Getting length of file: " + file.getName());
-                        long fileLength = file.length();
-                        LOG.debug("Zipping file: " + file.getName() + " (" + file.length() / 1024
-                                / 1024 + " MB)");
-
-                        FileInputStream fi = new FileInputStream(file);
-                        BufferedInputStream fileInput = new BufferedInputStream(fi, bufferSize);
-
-                        try {
-                            ZipEntry entry = new ZipEntry(files[i]);
-                            zipOut.putNextEntry(entry);
-
-                            long total = fileLength / bufferSize;
-                            long progress = 0;
-
-                            int count;
-                            while ((count = fileInput.read(data, 0, bufferSize)) != -1) {
-                                zipOut.write(data, 0, count);
-                                progress++;
-                                if (progress % 1000 == 0) {
-                                    LOG.debug("Written " + progress + " of " + total
-                                            + " batches for file: " + file.getName());
-                                }
-                            }
-                        } finally {
-                            LOG.debug("Closing file: " + file.getName() + "...");
-                            fileInput.close();
-                        }
-                        LOG.debug("Finished storing file: " + file.getName());
-                    }
-                } catch (IOException e) {
-                    LOG.error("Error storing index", e);
-                } finally {
-                    if (zipOut != null) {
-                        zipOut.close();
-                    }
-                }
-            } else if ("RAMDirectory".equals(index.getDirectoryType())) {
-                LOG.debug("Saving RAM directory to database...");
-                writeObjectToDB(os, MetadataManager.SEARCH_INDEX_DIRECTORY, index.getDirectory());
-                LOG.debug("Successfully saved RAM directory to database.");
-            }
-        } catch (IOException e) {
-            LOG.error(null, e);
-            throw new RuntimeException("Index creation failed: ", e);
-        } catch (SQLException e) {
-            LOG.error(null, e);
-            throw new RuntimeException("Index creation failed: ", e);
-        }
-    }
 
     /**
      * perform a keyword search over all document metadata fields with lucene
