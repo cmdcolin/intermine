@@ -34,6 +34,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.io.IOUtils;
@@ -565,43 +566,46 @@ public class AjaxServices
 
             try {
                 results = SearchResults.doFilteredSearch(filterText);
+
+                //Filter by aspects (defined in superuser account)
+                List<String> aspectTags = new ArrayList<String>();
+                List<String> userTags = new ArrayList<String>();
+                for (String tag :tags) {
+                    if (tag.startsWith(TagNames.IM_ASPECT_PREFIX)) {
+                        aspectTags.add(tag);
+                    } else {
+                        if (profile.getUsername() != null) {
+                            // Only allow filtering from registered users.
+                            userTags.add(tag);
+                        }
+                    }
+                }
+
+                TagFilter aspects = new TagFilter(aspectTags, pm.getSuperuserProfile(), type);
+                TagFilter requiredTags = new TagFilter(userTags, profile, type);
+
+                List<Object> returnList = new ArrayList<Object>();
+
+                returnList.add(callId);
+
+                for (org.intermine.api.search.SearchResult sr: results) {
+                    WebSearchable ws = sr.getItem();
+                    if (SearchResults.isInvalidTemplate(ws)) {
+                        continue;
+                    }
+                    if (!(aspects.hasAllTags(ws) && requiredTags.hasAllTags(ws))) {
+                        continue;
+                    }
+                    returnList.add(sr.asList());
+                }
+                return returnList;
             } catch (IOException e) {
                 LOG.error("couldn't run lucene filter", e);
                 return Arrays.asList(callId);
+            } catch(SolrServerException e) {
+                LOG.error("fail to get solr data");
             }
-
-            //Filter by aspects (defined in superuser account)
-            List<String> aspectTags = new ArrayList<String>();
-            List<String> userTags = new ArrayList<String>();
-            for (String tag :tags) {
-                if (tag.startsWith(TagNames.IM_ASPECT_PREFIX)) {
-                    aspectTags.add(tag);
-                } else {
-                    if (profile.getUsername() != null) {
-                        // Only allow filtering from registered users.
-                        userTags.add(tag);
-                    }
-                }
-            }
-
-            TagFilter aspects = new TagFilter(aspectTags, pm.getSuperuserProfile(), type);
-            TagFilter requiredTags = new TagFilter(userTags, profile, type);
-
-            List<Object> returnList = new ArrayList<Object>();
-
-            returnList.add(callId);
-
-            for (org.intermine.api.search.SearchResult sr: results) {
-                WebSearchable ws = sr.getItem();
-                if (SearchResults.isInvalidTemplate(ws)) {
-                    continue;
-                }
-                if (!(aspects.hasAllTags(ws) && requiredTags.hasAllTags(ws))) {
-                    continue;
-                }
-                returnList.add(sr.asList());
-            }
-            return returnList;
+            return null;
         } catch (RuntimeException e) {
             processException(e);
             return null;
