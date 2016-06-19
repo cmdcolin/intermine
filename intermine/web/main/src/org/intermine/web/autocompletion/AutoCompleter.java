@@ -23,12 +23,11 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.response.UpdateResponse;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.intermine.metadata.ClassDescriptor;
 import org.intermine.objectstore.ObjectStore;
 import org.intermine.objectstore.ObjectStoreException;
@@ -47,11 +46,7 @@ import org.intermine.objectstore.query.ResultsRow;
 public class AutoCompleter
 {
     private  HashMap<String, String> fieldIndexMap = new HashMap<String, String>();
-    private HashMap<String, LuceneSearchEngine> ramIndexMap =
-                                        new HashMap<String, LuceneSearchEngine>();
-    private HashMap<String, RAMDirectory> blobMap = new HashMap<String, RAMDirectory>();
     private Properties prob;
-    private LuceneSearchEngine search = null;
 
     private static final File TEMP_DIR =
         new File("build" + File.separatorChar + "autocompleteIndexes");
@@ -80,122 +75,12 @@ public class AutoCompleter
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
-        }
-    }
-
-    /**
-     * Autocompleter rebuild constructor.
-     * @param blobInput InputStream from database
-     */
-    @SuppressWarnings("unchecked")
-    public AutoCompleter(InputStream blobInput) {
-        try {
-            ObjectInputStream objectInput = new ObjectInputStream(blobInput);
-
-            Object object = objectInput.readObject();
-
-            blobInput.close();
-
-            if (object instanceof HashMap<?, ?>) {
-                blobMap = (HashMap<String, RAMDirectory>) object;
-
-                for (Iterator<Map.Entry<String, RAMDirectory>> iter = blobMap.entrySet().iterator();
-                        iter.hasNext();) {
-                    Map.Entry<String, RAMDirectory> entry =
-                        iter.next();
-                    String key = entry.getKey();
-                    RAMDirectory value = null;
-                    value = entry.getValue();
-                    search = null;
-                    search = new LuceneSearchEngine(value);
-                    ramIndexMap.put(key, search);
-                    fieldIndexMap.put(key, key);
-                    LOG.info("AutoCompleter read index for: " + key);
-                }
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
+        } catch (SolrServerException e) {
             e.printStackTrace();
         }
     }
 
-    /**
-     * create the RAMIndex for the search engine
-     * @param classDes String of the class and the field (e.g. GOTerm.name)
-     */
-    public void createRAMIndex(String classDes) {
-        if (ramIndexMap.get(classDes) != null) {
-            search = null;
-            search = ramIndexMap.get(classDes);
-        } else {
-            try {
-                String indexFile = TEMP_DIR.toString() + File.separatorChar + classDes;
-                RAMDirectory ram = new RAMDirectory(FSDirectory.open(new File(indexFile)));
-                search = new LuceneSearchEngine(ram);
-                ramIndexMap.put(classDes, search);
-                blobMap.put(classDes, ram);
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
-    }
 
-    /**
-     * returns a string array with the search results of the query in the field
-     * @param query is the string used for search
-     * @param field is the field in which you like to search (e.g. name)
-     * @return stringList string array with the whole search results including
-     *           an error flag at position 0
-     */
-    public String[] getList(String query, String field) {
-        String[] stringList = null;
-        String status = "true";
-        int counter = 1;
-
-        TopDocs topDocs = null;
-        try {
-            topDocs = search.performSearch(query, field);
-        } catch (IOException e) {
-
-        } catch (ParseException e) {
-            status = "Please type in more characters to get results.";
-        }
-
-        if (topDocs != null) {
-            stringList = new String[topDocs.totalHits + 1];
-
-            for (int i = 0; i < topDocs.totalHits; i++) {
-                ScoreDoc scoreDoc = topDocs.scoreDocs[i];
-                Document doc;
-                try {
-                    doc = search.getIndexSearch().doc(scoreDoc.doc);
-
-                    stringList[counter] = doc.get(field);
-                    counter++;
-                } catch (IOException e) {
-                    //TODO: shouldn't this go outside the for loop?
-                    status = "No results! Please try again.";
-                }
-            }
-        }
-        stringList[0] = status;
-
-        return stringList;
-    }
-
-    /**
-     * Returns n search results
-     * @param query is the string used for search
-     * @param field is the field in which you like to search (e.g. name)
-     * @param n number of the first n search results
-     * @return string array with search results and an error flag at position 0
-     */
-    public String[] getFastList(String query, String field, int n) {
-        return search.fastSearch(query, field, n);
-    }
 
     /**
      * Build the index from the database blob
@@ -205,7 +90,10 @@ public class AutoCompleter
      * @throws ClassNotFoundException ClassNotFoundException
      */
     public void buildIndex(ObjectStore os)
-        throws IOException, ObjectStoreException, ClassNotFoundException {
+        throws IOException, ObjectStoreException, ClassNotFoundException, SolrServerException {
+
+        String urlString = "http://localhost:8983/solr/new_core2";
+        SolrClient solr = new HttpSolrClient(urlString);
 
         if (TEMP_DIR.exists()) {
             if (!TEMP_DIR.isDirectory()) {
@@ -243,54 +131,25 @@ public class AutoCompleter
                 q.addFrom(qc);
                 Results results = os.execute(q);
 
-                LuceneObjectClass objectClass = new LuceneObjectClass(classAndField);
-                objectClass.addField(fieldName);
-
                 for (Object resRow: results) {
                     @SuppressWarnings("rawtypes")
+                    SolrInputDocument document = new SolrInputDocument();
+                     
                     Object fieldValue = ((ResultsRow) resRow).get(0);
                     if (fieldValue != null) {
-                        objectClass.addValueToField(objectClass.getFieldName(0), fieldValue
-                                .toString());
+                        document.addField(classAndField, fieldValue.toString());
+                        System.out.println(classAndField + " " + fieldValue.toString());
                     }
+                    UpdateResponse response = solr.add(document);
                 }
-
-                String indexFileName = TEMP_DIR.getPath() + File.separatorChar + classAndField;
-                LuceneIndex indexer = new LuceneIndex(indexFileName);
-                indexer.addClass(objectClass);
-                indexer.rebuildClassIndexes();
-
-                createRAMIndex(classAndField);
+                solr.commit();
             }
         }
     }
-
-    /**
-     * Returns byte array of the RAMIndexMap
-     * @return Returns byte array of the RAMIndexMap
-     * @throws IOException IOException
-     */
-    public byte[] getBinaryIndexMap() throws IOException {
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        ObjectOutputStream objectStream = new ObjectOutputStream(byteStream);
-        objectStream.writeObject(blobMap);
-        objectStream.close();
-
-        return byteStream.toByteArray();
-    }
-
-    /**
-     * checks if an autocompletion exists
-     * @param type The name of the class to search.
-     * @param field The name of the field to search for.
-     * @return whether an autocompletion exists
-     */
     public boolean hasAutocompleter(String type, String field) {
         if (fieldIndexMap.get(type + "." + field) != null) {
             return true;
         }
         return false;
     }
-
-
 }

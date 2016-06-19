@@ -86,7 +86,6 @@ import org.intermine.sql.Database;
 import org.intermine.sql.DatabaseUtil;
 import org.intermine.util.PropertiesUtil;
 import org.intermine.util.ShutdownHook;
-import org.intermine.web.autocompletion.AutoCompleter;
 import org.intermine.web.context.InterMineContext;
 import org.intermine.web.logic.Constants;
 import org.intermine.web.logic.aspects.Aspect;
@@ -204,9 +203,6 @@ public class InitialiserPlugin implements PlugIn
         initSearch(servletContext, superProfile);
 
         servletContext.setAttribute(Constants.GRAPH_CACHE, new HashMap<String, String>());
-
-        loadAutoCompleter(servletContext, os);
-        LOG.debug("LOADED AUTO COMPLETER");
 
         cleanTags(im.getTagManager());
 
@@ -412,28 +408,6 @@ public class InitialiserPlugin implements PlugIn
         return false;
     }
 
-    private void loadAutoCompleter(ServletContext servletContext,
-            ObjectStore os) throws ServletException {
-        if (os instanceof ObjectStoreInterMineImpl) {
-            Database db = ((ObjectStoreInterMineImpl) os).getDatabase();
-            try {
-                InputStream is = MetadataManager.retrieveBLOBInputStream(db,
-                        MetadataManager.AUTOCOMPLETE_INDEX);
-                AutoCompleter ac;
-
-                if (is != null) {
-                    ac = new AutoCompleter(is);
-                    SessionMethods.setAutoCompleter(servletContext, ac);
-                } else {
-                    ac = null;
-                    LOG.warn("No AutoCompleter index found in database.");
-                }
-            } catch (SQLException e) {
-                LOG.error("Problem with database", e);
-                throw new ServletException("Problem with database", e);
-            }
-        }
-    }
 
     /**
      * Object and widget display configuration

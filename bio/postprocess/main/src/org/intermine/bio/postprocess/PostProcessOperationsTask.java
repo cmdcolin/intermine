@@ -194,10 +194,6 @@ public class PostProcessOperationsTask extends DynamicAttributeTask
                 Database db = ((ObjectStoreInterMineImpl) os).getDatabase();
 
                 AutoCompleter ac = new AutoCompleter(os, properties);
-                if (ac.getBinaryIndexMap() != null) {
-                    MetadataManager.storeBinary(db, MetadataManager.AUTOCOMPLETE_INDEX,
-                                        ac.getBinaryIndexMap());
-                }
             } else if ("create-search-index".equals(operation)) {
                 // Delegate to a sub-task.
                 CreateSearchIndexTask subtask = new CreateSearchIndexTask();
