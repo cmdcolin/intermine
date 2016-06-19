@@ -35,6 +35,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.io.IOUtils;
@@ -562,7 +563,7 @@ public class AjaxServices
             final ProfileManager pm = im.getProfileManager();
             final Profile profile = SessionMethods.getProfile(session);
             final SearchTarget target = new SearchTarget(scope, type);
-            final SearchResults results;
+            final QueryResponse results;
 
             try {
                 results = SearchResults.doFilteredSearch(filterText);
@@ -587,17 +588,17 @@ public class AjaxServices
                 List<Object> returnList = new ArrayList<Object>();
 
                 returnList.add(callId);
-
-                for (org.intermine.api.search.SearchResult sr: results) {
-                    WebSearchable ws = sr.getItem();
-                    if (SearchResults.isInvalidTemplate(ws)) {
-                        continue;
-                    }
-                    if (!(aspects.hasAllTags(ws) && requiredTags.hasAllTags(ws))) {
-                        continue;
-                    }
-                    returnList.add(sr.asList());
-                }
+//
+//                for (org.intermine.api.search.SearchResult sr: results) {
+//                    WebSearchable ws = sr.getItem();
+//                    if (SearchResults.isInvalidTemplate(ws)) {
+//                        continue;
+//                    }
+//                    if (!(aspects.hasAllTags(ws) && requiredTags.hasAllTags(ws))) {
+//                        continue;
+//                    }
+//                    returnList.add(sr.asList());
+//                }
                 return returnList;
             } catch (IOException e) {
                 LOG.error("couldn't run lucene filter", e);

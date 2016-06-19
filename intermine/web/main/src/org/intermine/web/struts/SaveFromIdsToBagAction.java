@@ -34,6 +34,9 @@ import org.intermine.web.logic.session.SessionMethods;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocument;
 
 /**
  * Saves selected items with InterMine ids and a Type in a new bag or combines
@@ -70,14 +73,13 @@ public class SaveFromIdsToBagAction extends InterMineAction
                 Map<String, String> facetMap = jsonToJava(jsonRequest);
                 int offset = 0;
                 boolean pagination = false;
-                SearchResults result = SearchResults.doFilteredSearch(searchTerm);
+                QueryResponse result = SearchResults.doFilteredSearch(searchTerm);
+                SolrDocumentList rs = result.getResults();
 
                 if (result != null) {
-                    LOG.error("processing result! " + result.getNumHits());
-                    ArrayList<String> browseHits = result.getHits();
-                    LOG.error("browseHits " + browseHits.size());
-                    idSet = SearchResults.getObjectIds(result);
-                    LOG.error("number of IDs " + idSet.size());
+                    LOG.error("processing result! " + rs.getNumFound());
+                    //idSet = SearchResults.getObjectIds(result);
+                    //LOG.error("number of IDs " + idSet.size());
 
                 } else {
                     LOG.error("NO RESULT");

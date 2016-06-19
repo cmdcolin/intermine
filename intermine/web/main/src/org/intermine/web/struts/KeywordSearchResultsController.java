@@ -46,6 +46,7 @@ import org.intermine.web.search.SearchUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.apache.solr.client.solrj.response.QueryResponse;
 
 /**
  * Controller for keyword search.
@@ -82,7 +83,7 @@ public class KeywordSearchResultsController extends TilesAction
         final InterMineAPI im = SessionMethods.getInterMineAPI(request.getSession());
         ServletContext servletContext = request.getSession().getServletContext();
         String contextPath = servletContext.getRealPath("/");
-        int totalHits = 0;
+        long totalHits = 0;
 
         //track the keyword search
         Profile profile = SessionMethods.getProfile(request.getSession());
@@ -102,8 +103,8 @@ public class KeywordSearchResultsController extends TilesAction
 
         long searchTime = System.currentTimeMillis();
 
-        SearchResults results = SearchResults.doFilteredSearch(searchTerm);
-        totalHits = results.getNumHits();
+        QueryResponse results = SearchResults.doFilteredSearch(searchTerm);
+        totalHits = results.getResults().getNumFound();
 
         LOG.debug("SEARCH RESULTS FOR " + searchTerm  + ": " + totalHits);
 
@@ -123,9 +124,9 @@ public class KeywordSearchResultsController extends TilesAction
         context.putAttribute("searchBag", request.getAttribute("searchBag"));
 
         // pagination
-        context.putAttribute("searchOffset", Integer.valueOf(offset));
-        context.putAttribute("searchPerPage", Integer.valueOf(10));
-        context.putAttribute("searchTotalHits", Integer.valueOf(totalHits));
+        context.putAttribute("searchOffset", Long.valueOf(offset));
+        context.putAttribute("searchPerPage", Long.valueOf(10));
+        context.putAttribute("searchTotalHits", Long.valueOf(totalHits));
 
         //TODO
         // used for re-running the search in case of creating a list for ALL results
