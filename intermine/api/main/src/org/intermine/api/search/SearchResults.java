@@ -162,7 +162,7 @@ public final class SearchResults implements Iterable<SearchResult>
         LOG.info("Searching query "
                 + " was:" + origQueryString + " now:" + queryString);
 
-        String urlString = "http://localhost:8983/solr/techproducts";
+        String urlString = "http://localhost:8983/solr/new_core2";
         SolrClient client = new HttpSolrClient(urlString);
 
         QueryResponse resp = client.query(new SolrQuery(queryString));

@@ -172,6 +172,38 @@ public class PostProcessOperationsTask extends DynamicAttributeTask
             } else if ("precompute-queries".equals(operation)) {
                 (new PrecomputeTask()).precompute(false, getObjectStoreWriter().getObjectStore(),
                         0);
+            } else if ("create-lucene-index".equals(operation)
+                       || "create-autocomplete-index".equals(operation)) {
+                System.out .println("create lucene index ...");
+                ObjectStore os = getObjectStoreWriter().getObjectStore();
+                if (!(os instanceof ObjectStoreInterMineImpl)) {
+                    throw new RuntimeException("cannot summarise ObjectStore - must be an "
+                                   + "instance of ObjectStoreInterMineImpl (create lucene index)");
+                }
+                String configFileName = "objectstoresummary.config.properties";
+                ClassLoader classLoader = PostProcessOperationsTask.class.getClassLoader();
+                InputStream configStream =
+                    classLoader.getResourceAsStream(configFileName);
+                if (configStream == null) {
+                    throw new RuntimeException("can't find resource: " + configFileName);
+                }
+
+                Properties properties = new Properties();
+                properties.load(configStream);
+
+                Database db = ((ObjectStoreInterMineImpl) os).getDatabase();
+
+                AutoCompleter ac = new AutoCompleter(os, properties);
+                if (ac.getBinaryIndexMap() != null) {
+                    MetadataManager.storeBinary(db, MetadataManager.AUTOCOMPLETE_INDEX,
+                                        ac.getBinaryIndexMap());
+                }
+            } else if ("create-search-index".equals(operation)) {
+                // Delegate to a sub-task.
+                CreateSearchIndexTask subtask = new CreateSearchIndexTask();
+                subtask.setClassLoader(PostProcessOperationsTask.class.getClassLoader());
+                subtask.setObjectStore(getObjectStoreWriter().getObjectStore());
+                subtask.execute();
             } else if ("create-overlap-view".equals(operation)) {
                 OverlapViewTask ovt = new OverlapViewTask(getObjectStoreWriter());
                 ovt.createView();
