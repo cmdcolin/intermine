@@ -13,6 +13,8 @@ package org.intermine.web.struts;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Collection;
+
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -31,6 +33,8 @@ import org.intermine.api.profile.Profile;
 import org.intermine.api.search.SearchResults;
 import org.intermine.web.logic.config.WebConfig;
 import org.intermine.web.logic.session.SessionMethods;
+import org.intermine.web.search.SearchUtils;
+import org.intermine.web.search.KeywordSearchResult;
 import org.apache.solr.client.solrj.response.QueryResponse;
 
 /**
@@ -89,6 +93,8 @@ public class KeywordSearchResultsController extends TilesAction
         long searchTime = System.currentTimeMillis();
 
         SearchResults results = SearchResults.doFilteredSearch(searchTerm);
+        Collection<KeywordSearchResult> resultsParsed = SearchUtils.parseResults(im, wc, results.getHits());
+
         totalHits = results.getNumHits();
 
         LOG.debug("SEARCH RESULTS FOR " + searchTerm  + ": " + totalHits);
@@ -99,7 +105,7 @@ public class KeywordSearchResultsController extends TilesAction
         }
 
         // there are needed in the form too so we have to use request (i think...)
-        request.setAttribute("searchResults", results);
+        request.setAttribute("searchResults", resultsParsed);
         request.setAttribute("searchFacets", new ArrayList());
         request.setAttribute("searchTerm", searchTerm);
         request.setAttribute("searchBag", searchBag);

@@ -63,6 +63,14 @@ public class SolrSearchResult implements WebSearchable
         return description;
     }
 
+    public Float getScore() {
+        return 1.0f;
+    }
+
+    public InterMineObject getObject() {
+        return this;
+    }
+
     /**
      * Add this observer to the list of interested parties. The observer should be notified
      * of every change event this web searchable object has cause to issue.

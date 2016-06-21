@@ -47,7 +47,7 @@ public final class SearchResults implements Iterable<SearchResult>
     private static final class SearchResultIt implements Iterator<SearchResult>
     {
         private final SearchResults parent;
-        private final Iterator<WebSearchable> subiter;
+        private final Iterator<SolrSearchResult> subiter;
 
         SearchResultIt(SearchResults parent) {
             this.parent = parent;
@@ -62,7 +62,7 @@ public final class SearchResults implements Iterable<SearchResult>
 
         @Override
         public SearchResult next() {
-            WebSearchable n = subiter.next();
+            SolrSearchResult n = subiter.next();
             return new SearchResult(n, parent.hits.get(n), parent.descs.get(n), parent.tags.get(n));
         }
 
@@ -72,13 +72,13 @@ public final class SearchResults implements Iterable<SearchResult>
         }
 
     }
-    private final Map<WebSearchable, Float> hits = new HashMap<WebSearchable, Float>();
-    private final Map<String, WebSearchable> items = new HashMap<String, WebSearchable>();
-    private final Map<WebSearchable, String> descs = new HashMap<WebSearchable, String>();
-    private final Map<WebSearchable, Set<String>> tags = new HashMap<WebSearchable, Set<String>>();
+    private final Map<SolrSearchResult, Float> hits = new HashMap<SolrSearchResult, Float>();
+    private final Map<String, SolrSearchResult> items = new HashMap<String, SolrSearchResult>();
+    private final Map<SolrSearchResult, String> descs = new HashMap<SolrSearchResult, String>();
+    private final Map<SolrSearchResult, Set<String>> tags = new HashMap<SolrSearchResult, Set<String>>();
 
     // Constructor only available to the static methods below.
-    private SearchResults(Map<WebSearchable, Float> hitMap) {
+    private SearchResults(Map<SolrSearchResult, Float> hitMap) {
         this.hits.putAll(hitMap);
     }
     /**
@@ -147,7 +147,7 @@ public final class SearchResults implements Iterable<SearchResult>
 
         QueryResponse resp = client.query(new SolrQuery(queryString));
         System.out.println(resp);
-        Map<WebSearchable, Float> hits = new HashMap<WebSearchable, Float>();
+        Map<SolrSearchResult, Float> hits = new HashMap<SolrSearchResult, Float>();
         for(SolrDocument doc : resp.getResults()){
             hits.put(new SolrSearchResult("value", "OntologyTerm.name", "test", "test2"), 1.0f);
         }
@@ -160,8 +160,8 @@ public final class SearchResults implements Iterable<SearchResult>
         SearchResults s = new SearchResults(hits);
         return s;
     }
-    public ArrayList<WebSearchable> getHits() {
-        return new ArrayList<WebSearchable>(hits.keySet());
+    public ArrayList<SolrSearchResult> getHits() {
+        return new ArrayList<SolrSearchResult>(hits.keySet());
     }
     public Integer getNumHits() {
         return hits.size();
