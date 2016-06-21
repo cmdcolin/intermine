@@ -125,6 +125,7 @@ public class AutoCompleter
                 q.setDistinct(true);
                 QueryClass qc = new QueryClass(Class.forName(cld.getName()));
                 q.addToSelect(new QueryField(qc, fieldName));
+                q.addToSelect(new QueryField(qc, "id"));
                 q.addFrom(qc);
                 Results results = os.execute(q);
 
@@ -132,9 +133,12 @@ public class AutoCompleter
                     @SuppressWarnings("rawtypes")
                     SolrInputDocument document = new SolrInputDocument();
                     Object fieldValue = ((ResultsRow) resRow).get(0);
+                    Object fieldId = ((ResultsRow) resRow).get(1);
                     if (fieldValue != null) {
-                        document.addField(classAndField, fieldValue.toString());
-                        System.out.println(classAndField + " " + fieldValue.toString());
+                        document.addField("value", fieldValue.toString());
+                        document.addField("type", classAndField);
+                        document.addField("objectId", fieldId);
+                        System.out.println(classAndField + " " + fieldValue.toString() + " " + fieldId.toString());
                     }
                     UpdateResponse response = solr.add(document);
                 }

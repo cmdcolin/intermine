@@ -149,7 +149,11 @@ public final class SearchResults implements Iterable<SearchResult>
         System.out.println(resp);
         Map<SolrSearchResult, Float> hits = new HashMap<SolrSearchResult, Float>();
         for(SolrDocument doc : resp.getResults()){
-            hits.put(new SolrSearchResult("value", "OntologyTerm.name", "test", "test2"), 1.0f);
+            Integer objectId = doc.getFieldValue("objectId");
+            String tagtype = doc.getFieldValue("type");
+            String value = doc.getFieldValue("value");
+            String name = doc.getFieldValue("name");
+            hits.put(new SolrSearchResult(value, tagtype, "test", "test2", object), 1.0f);
         }
 
 //        Map<String, SolrSearchResult> blah1 = new HashMap<String, SolrSearchResult>();

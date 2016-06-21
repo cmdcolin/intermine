@@ -85,3 +85,7 @@ Please cite
 [java]: http://www.oracle.com/technetwork/java/javase/downloads/index.html
 [apache]: http://www.apache.org
 [tomcat]: http://tomcat.apache.org/download-70.cgi
+
+Dump Solr datastore
+
+http://localhost:8983/solr/new_core2/update?stream.body=%3Cdelete%3E%3Cquery%3E*:*%3C/query%3E%3C/delete%3E&commit=true

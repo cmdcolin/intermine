@@ -13,6 +13,7 @@ import org.intermine.api.search.WebSearchable;
 import org.intermine.api.search.WebSearchWatcher;
 import org.intermine.api.profile.Taggable;
 import org.intermine.api.search.OriginatingEvent;
+import org.intermine.model.InterMineObject;
 
 /**
  * An interface implemented by objects that return from Solr.
@@ -25,12 +26,14 @@ public class SolrSearchResult implements WebSearchable
     String description;
     String tagtype;
     String name;
+    InterMineObject object;
 
-    public SolrSearchResult(String titl, String desc, String tag, String nam) {
-        title = titl;
-        description = desc;
-        tagtype = tag;
-        name = nam;
+    public SolrSearchResult(String title, String description, String tagtype, String name, InterMineObject object) {
+        this.title = title;
+        this.description = description;
+        this.tagtype = tagtype;
+        this.name = name;
+        this.object = object;
     }
 
     /**
@@ -68,7 +71,7 @@ public class SolrSearchResult implements WebSearchable
     }
 
     public InterMineObject getObject() {
-        return this;
+        return object;
     }
 
     /**
