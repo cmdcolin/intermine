@@ -9,12 +9,8 @@ package org.intermine.web.autocompletion;
  * information or http://www.gnu.org/copyleft/lesser.html.
  *
  */
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -88,6 +84,7 @@ public class AutoCompleter
      * @throws IOException IOException
      * @throws ObjectStoreException ObjectStoreException
      * @throws ClassNotFoundException ClassNotFoundException
+     * @throws SolrServerException SolrServerException
      */
     public void buildIndex(ObjectStore os)
         throws IOException, ObjectStoreException, ClassNotFoundException, SolrServerException {
@@ -134,7 +131,6 @@ public class AutoCompleter
                 for (Object resRow: results) {
                     @SuppressWarnings("rawtypes")
                     SolrInputDocument document = new SolrInputDocument();
-                     
                     Object fieldValue = ((ResultsRow) resRow).get(0);
                     if (fieldValue != null) {
                         document.addField(classAndField, fieldValue.toString());
@@ -146,6 +142,7 @@ public class AutoCompleter
             }
         }
     }
+
     public boolean hasAutocompleter(String type, String field) {
         if (fieldIndexMap.get(type + "." + field) != null) {
             return true;

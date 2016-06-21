@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import javax.servlet.ServletContext;
@@ -40,7 +39,6 @@ import org.intermine.api.profile.TagManager;
 import org.intermine.api.search.Scope;
 import org.intermine.api.search.SearchFilterEngine;
 import org.intermine.api.search.SearchRepository;
-import org.intermine.api.search.SearchResults;
 import org.intermine.api.search.WebSearchable;
 import org.intermine.api.tag.TagTypes;
 import org.intermine.api.template.TemplateManager;

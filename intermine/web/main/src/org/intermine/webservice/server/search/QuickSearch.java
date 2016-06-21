@@ -12,14 +12,10 @@ package org.intermine.webservice.server.search;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import javax.servlet.ServletContext;
 
@@ -30,14 +26,11 @@ import org.intermine.api.bag.BagManager;
 import org.intermine.api.profile.InterMineBag;
 import org.intermine.api.profile.Profile;
 import org.intermine.api.search.SearchResults;
-import org.intermine.api.search.SearchResult;
 import org.intermine.web.context.InterMineContext;
 import org.intermine.web.logic.RequestUtil;
 import org.intermine.web.logic.config.WebConfig;
 import org.intermine.web.logic.export.Exporter;
 import org.intermine.web.logic.export.ResponseUtil;
-import org.intermine.web.search.KeywordSearchResult;
-import org.intermine.web.search.SearchUtils;
 import org.intermine.webservice.server.core.JSONService;
 import org.intermine.webservice.server.exceptions.BadRequestException;
 import org.intermine.webservice.server.output.JSONFormatter;
@@ -80,10 +73,11 @@ public class QuickSearch extends JSONService
         QueryResponse results = SearchResults.doFilteredSearch(input.searchTerm);
         SolrDocumentList rs = results.getResults();
         long numFound = rs.getNumFound();
+        System.out .println("results: " + rs.getNumFound());
         int current = 0;
-        for(int j = 0; j < rs.size(); j++) {
+        for (int j = 0; j < rs.size(); j++) {
             SolrDocument sdoc = rs.get(j);
-            System.out.println("************************************************************** " + sdoc + "   " + numFound);
+            System.out .println("************************************************************** " + sdoc + "   " + numFound);
             output.addResultItem(Arrays.asList("************************************************************** " + sdoc + "   " + numFound));
         }
 //            SolrDocument doc = iter.next();

@@ -10,17 +10,10 @@ package org.intermine.api.search;
  *
  */
 
-import static java.util.Arrays.asList;
-import static org.apache.commons.lang.StringUtils.isBlank;
-import static org.apache.commons.lang.StringUtils.split;
-
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,10 +23,7 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
-import org.intermine.api.profile.TagManager;
-import org.intermine.api.profile.TagManagerFactory;
 import org.intermine.template.TemplateQuery;
 
 /**
@@ -103,7 +93,6 @@ public final class SearchResults
         SolrClient client = new HttpSolrClient(urlString);
 
         QueryResponse resp = client.query(new SolrQuery(queryString));
-        
 
         return resp;
     }

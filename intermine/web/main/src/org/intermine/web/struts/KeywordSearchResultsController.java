@@ -10,26 +10,16 @@ package org.intermine.web.struts;
  *
  */
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Vector;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Layout;
 import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.RollingFileAppender;
 import org.apache.struts.action.ActionForm;
 import org.apache.struts.action.ActionForward;
 import org.apache.struts.action.ActionMapping;
@@ -41,11 +31,6 @@ import org.intermine.api.profile.Profile;
 import org.intermine.api.search.SearchResults;
 import org.intermine.web.logic.config.WebConfig;
 import org.intermine.web.logic.session.SessionMethods;
-import org.intermine.web.search.KeywordSearchResult;
-import org.intermine.web.search.SearchUtils;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.apache.solr.client.solrj.response.QueryResponse;
 
 /**
@@ -115,11 +100,13 @@ public class KeywordSearchResultsController extends TilesAction
 
         // there are needed in the form too so we have to use request (i think...)
         request.setAttribute("searchResults", results);
+        request.setAttribute("searchFacets", "");
         request.setAttribute("searchTerm", searchTerm);
         request.setAttribute("searchBag", searchBag);
 
 
         context.putAttribute("searchResults", request.getAttribute("searchResults"));
+        context.putAttribute("searchFacets", request.getAttribute("searchFacets"));
         context.putAttribute("searchTerm", request.getAttribute("searchTerm"));
         context.putAttribute("searchBag", request.getAttribute("searchBag"));
 
@@ -132,7 +119,6 @@ public class KeywordSearchResultsController extends TilesAction
         // used for re-running the search in case of creating a list for ALL results
         // facet lists
         // facet values
-        
 
         // time for debugging
         long totalTime = System.currentTimeMillis() - time;
