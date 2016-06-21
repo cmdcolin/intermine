@@ -88,8 +88,8 @@ public class KeywordSearchResultsController extends TilesAction
 
         long searchTime = System.currentTimeMillis();
 
-        QueryResponse results = SearchResults.doFilteredSearch(searchTerm);
-        totalHits = results.getResults().getNumFound();
+        SearchResults results = SearchResults.doFilteredSearch(searchTerm);
+        totalHits = results.getNumHits();
 
         LOG.debug("SEARCH RESULTS FOR " + searchTerm  + ": " + totalHits);
 

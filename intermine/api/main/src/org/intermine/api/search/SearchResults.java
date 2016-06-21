@@ -16,12 +16,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.Iterator;
 
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocument;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.intermine.api.solr.SolrSearchResult;
 
 import org.apache.log4j.Logger;
 import org.intermine.template.TemplateQuery;
@@ -35,11 +38,68 @@ import org.intermine.template.TemplateQuery;
  * @author Kim Rutherford
  * @author Colin Diesh
  */
-public final class SearchResults
+public final class SearchResults implements Iterable<SearchResult>
 {
     private static final Logger LOG = Logger.getLogger(SearchResults.class);
 
 
+    /** The iterator for this iterable **/
+    private static final class SearchResultIt implements Iterator<SearchResult>
+    {
+        private final SearchResults parent;
+        private final Iterator<WebSearchable> subiter;
+
+        SearchResultIt(SearchResults parent) {
+            this.parent = parent;
+            subiter = parent.items.values().iterator();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return subiter.hasNext();
+        }
+
+
+        @Override
+        public SearchResult next() {
+            WebSearchable n = subiter.next();
+            return new SearchResult(n, parent.hits.get(n), parent.descs.get(n), parent.tags.get(n));
+        }
+
+        @Override
+        public void remove() {
+            throw new RuntimeException("Not implemented");
+        }
+
+    }
+    private final Map<WebSearchable, Float> hits = new HashMap<WebSearchable, Float>();
+    private final Map<String, WebSearchable> items = new HashMap<String, WebSearchable>();
+    private final Map<WebSearchable, String> descs = new HashMap<WebSearchable, String>();
+    private final Map<WebSearchable, Set<String>> tags = new HashMap<WebSearchable, Set<String>>();
+
+    // Constructor only available to the static methods below.
+    private SearchResults(
+            Map<WebSearchable, Float> hitMap,
+            Map<String, WebSearchable> items,
+            Map<WebSearchable, String> descriptions,
+            Map<WebSearchable, Set<String>> itemsTags) {
+        this.hits.putAll(hitMap);
+        this.items.putAll(items);
+        this.descs.putAll(descriptions);
+        this.tags.putAll(itemsTags);
+    }
+    /**
+     *
+     * @return size
+     */
+    public int size() {
+        return items.size();
+    }
+
+    @Override
+    public Iterator<SearchResult> iterator() {
+        return new SearchResultIt(this);
+    }
 
     /**
      * Check if a websearchable is an invalid template.
@@ -79,10 +139,10 @@ public final class SearchResults
      * @throws IOException If there is an issue opening the indices.
      * @throws SolrServerException If there is an issue opening the indices.
      */
-    public static QueryResponse doFilteredSearch(String origQueryString)
+    public static SearchResults doFilteredSearch(String origQueryString)
         throws IOException, SolrServerException {
 
-        Map<WebSearchable, String> highlightedDescMap = new HashMap<WebSearchable, String>();
+        Map<String, String> highlightedDescMap = new HashMap<String, String>();
 
         String queryString = prepareQueryString(origQueryString);
 
@@ -93,8 +153,13 @@ public final class SearchResults
         SolrClient client = new HttpSolrClient(urlString);
 
         QueryResponse resp = client.query(new SolrQuery(queryString));
+        Map<WebSearchable, Float> hits = new HashMap<WebSearchable, Float>();
+        for(SolrDocument doc : resp.getResults()){
+            hits.put(new SolrSearchResult((String) doc.getFieldValue("OntologyTerm.name"), "OntologyTerm.name", "test", "test2"), 1.0f);
+        }
+        SearchResults s = new SearchResults(hits, null, null, null);
 
-        return resp;
+        return s;
     }
     public ArrayList<String> getHits() {
         return new ArrayList<String>();

@@ -70,33 +70,8 @@ public class QuickSearch extends JSONService
         String contextPath = servletContext.getRealPath("/");
         WebConfig wc = InterMineContext.getWebConfig();
         QuickSearchRequest input = new QuickSearchRequest();
-        QueryResponse results = SearchResults.doFilteredSearch(input.searchTerm);
-        SolrDocumentList rs = results.getResults();
-        long numFound = rs.getNumFound();
-        System.out .println("results: " + rs.getNumFound());
-        int current = 0;
-        for (int j = 0; j < rs.size(); j++) {
-            SolrDocument sdoc = rs.get(j);
-            System.out .println("************************************************************** " + sdoc + "   " + numFound);
-            output.addResultItem(Arrays.asList("************************************************************** " + sdoc + "   " + numFound));
-        }
-//            SolrDocument doc = iter.next();
-//            Map<String, Collection<Object>> values = doc.getFieldValuesMap();
-//
-//            Iterator<String> names = doc.getFieldNames().iterator();
-//            while (names.hasNext()) {
-//                String name = names.next();
-//                System.out.print(name);
-//                System.out.print(" = ");
-//
-//                Collection<Object> vals = values.get(name);
-//                Iterator<Object> valsIter = vals.iterator();
-//                while (valsIter.hasNext()) {
-//                    Object obj = valsIter.next();
-//                    System.out.println(obj.toString());
-//                }
-//            }
-//        }
+        SearchResults results = SearchResults.doFilteredSearch(input.searchTerm);
+        
     }
 
     @Override

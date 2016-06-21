@@ -563,7 +563,7 @@ public class AjaxServices
             final ProfileManager pm = im.getProfileManager();
             final Profile profile = SessionMethods.getProfile(session);
             final SearchTarget target = new SearchTarget(scope, type);
-            final QueryResponse results;
+            final SearchResults results;
 
             try {
                 results = SearchResults.doFilteredSearch(filterText);

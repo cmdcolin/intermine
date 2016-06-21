@@ -73,11 +73,10 @@ public class SaveFromIdsToBagAction extends InterMineAction
                 Map<String, String> facetMap = jsonToJava(jsonRequest);
                 int offset = 0;
                 boolean pagination = false;
-                QueryResponse result = SearchResults.doFilteredSearch(searchTerm);
-                SolrDocumentList rs = result.getResults();
+                SearchResults result = SearchResults.doFilteredSearch(searchTerm);
 
                 if (result != null) {
-                    LOG.error("processing result! " + rs.getNumFound());
+                    LOG.error("processing result! " + result.getNumHits());
                     //idSet = SearchResults.getObjectIds(result);
                     //LOG.error("number of IDs " + idSet.size());
 
