@@ -78,15 +78,8 @@ public final class SearchResults implements Iterable<SearchResult>
     private final Map<WebSearchable, Set<String>> tags = new HashMap<WebSearchable, Set<String>>();
 
     // Constructor only available to the static methods below.
-    private SearchResults(
-            Map<WebSearchable, Float> hitMap,
-            Map<String, WebSearchable> items,
-            Map<WebSearchable, String> descriptions,
-            Map<WebSearchable, Set<String>> itemsTags) {
+    private SearchResults(Map<WebSearchable, Float> hitMap) {
         this.hits.putAll(hitMap);
-        this.items.putAll(items);
-        this.descs.putAll(descriptions);
-        this.tags.putAll(itemsTags);
     }
     /**
      *
@@ -153,12 +146,18 @@ public final class SearchResults implements Iterable<SearchResult>
         SolrClient client = new HttpSolrClient(urlString);
 
         QueryResponse resp = client.query(new SolrQuery(queryString));
+        System.out.println(resp);
         Map<WebSearchable, Float> hits = new HashMap<WebSearchable, Float>();
         for(SolrDocument doc : resp.getResults()){
-            hits.put(new SolrSearchResult((String) doc.getFieldValue("OntologyTerm.name"), "OntologyTerm.name", "test", "test2"), 1.0f);
+            hits.put(new SolrSearchResult("value", "OntologyTerm.name", "test", "test2"), 1.0f);
         }
-        SearchResults s = new SearchResults(hits, null, null, null);
 
+//        Map<String, SolrSearchResult> blah1 = new HashMap<String, SolrSearchResult>();
+//        Map<SolrSearchResult, String> blah2 = new HashMap<SolrSearchResult, String>();
+//        Map<SolrSearchResult, HashSet<String>> blah3 = new HashMap<SolrSearchResult, HashSet<String>>();
+//        SearchResults s = new SearchResults(hits, blah1, blah2, blah3);
+//
+        SearchResults s = new SearchResults(hits);
         return s;
     }
     public ArrayList<String> getHits() {
