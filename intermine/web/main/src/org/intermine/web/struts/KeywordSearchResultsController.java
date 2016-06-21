@@ -100,7 +100,7 @@ public class KeywordSearchResultsController extends TilesAction
 
         // there are needed in the form too so we have to use request (i think...)
         request.setAttribute("searchResults", results);
-        request.setAttribute("searchFacets", "");
+        request.setAttribute("searchFacets", new ArrayList());
         request.setAttribute("searchTerm", searchTerm);
         request.setAttribute("searchBag", searchBag);
 

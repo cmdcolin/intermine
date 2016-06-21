@@ -116,10 +116,10 @@ public final class SearchResults implements Iterable<SearchResult>
      */
     private static String prepareQueryString(String origQueryString) {
         // special case for word ending in "log" eg. "ortholog" - add "orthologue" to the search
-        String queryString = origQueryString.replaceAll("(\\w+log\\b)", "$1ue $1");
-        queryString = queryString.replaceAll("[^a-zA-Z0-9]", " ").trim();
-        queryString = queryString.replaceAll("(\\w+)$", "$1 $1*");
-        return queryString;
+        //String queryString = origQueryString.replaceAll("(\\w+log\\b)", "$1ue $1");
+        //queryString = queryString.replaceAll("[^a-zA-Z0-9]", " ").trim();
+        //queryString = queryString.replaceAll("(\\w+)$", "$1 $1*");
+        return origQueryString;
     }
 
     /**
@@ -160,11 +160,11 @@ public final class SearchResults implements Iterable<SearchResult>
         SearchResults s = new SearchResults(hits);
         return s;
     }
-    public ArrayList<String> getHits() {
-        return new ArrayList<String>();
+    public ArrayList<WebSearchable> getHits() {
+        return new ArrayList<WebSearchable>(hits.keySet());
     }
     public Integer getNumHits() {
-        return 0;
+        return hits.size();
     }
     public static Set<Integer> getObjectIds(SearchResults result) {
         return new HashSet<Integer>();
