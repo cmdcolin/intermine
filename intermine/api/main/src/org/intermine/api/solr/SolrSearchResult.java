@@ -26,14 +26,15 @@ public class SolrSearchResult implements WebSearchable
     String description;
     String tagtype;
     String name;
+    Integer objectId;
     InterMineObject object;
 
-    public SolrSearchResult(String title, String description, String tagtype, String name, InterMineObject object) {
+    public SolrSearchResult(String title, String description, String tagtype, String name, Integer objectId) {
         this.title = title;
         this.description = description;
         this.tagtype = tagtype;
         this.name = name;
-        this.object = object;
+        this.objectId = objectId;
     }
 
     /**
@@ -58,6 +59,14 @@ public class SolrSearchResult implements WebSearchable
     public String getTagType() {
         return tagtype;
     }
+
+    /**
+     * Return the objectId of this object.
+     * @return the objectId 
+     */
+    public String getObjectId() {
+        return objectId;
+    }
     /**
      * Return the description of this object.
      * @return the description
@@ -65,13 +74,23 @@ public class SolrSearchResult implements WebSearchable
     public String getDescription() {
         return description;
     }
-
+    /**
+     * Return the score of this object.
+     * @return the score
+     */
     public Float getScore() {
         return 1.0f;
     }
-
+    /**
+     * Return the root intermine object.
+     * @return the object
+     */
     public InterMineObject getObject() {
         return object;
+    }
+
+    public void setObject(InterMineObject object) {
+        this.object = object;
     }
 
     /**
