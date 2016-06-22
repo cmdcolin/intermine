@@ -134,11 +134,14 @@ public class AutoCompleter
                     SolrInputDocument document = new SolrInputDocument();
                     Object fieldValue = ((ResultsRow) resRow).get(0);
                     Object fieldId = ((ResultsRow) resRow).get(1);
-                    if (fieldValue != null) {
+                    if(fieldValue!=null) {
                         document.addField("value", fieldValue.toString());
                         document.addField("type", classAndField);
-                        document.addField("objectId", fieldId);
-                        System.out.println(classAndField + " " + fieldValue.toString() + " " + fieldId.toString());
+                        document.addField("objectId", fieldId.toString());
+                        System.out.println(classAndField + " " + fieldValue.toString() + " " + fieldId.toString()+" "+classAndField);
+                    }
+                    else {
+                        System.out.println("ERROR?" + " "+fieldValue+ " "+fieldId+" "+classAndField);
                     }
                     UpdateResponse response = solr.add(document);
                 }

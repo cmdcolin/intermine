@@ -64,7 +64,7 @@ public class SolrSearchResult implements WebSearchable
      * Return the objectId of this object.
      * @return the objectId 
      */
-    public String getObjectId() {
+    public Integer getObjectId() {
         return objectId;
     }
     /**

@@ -25,6 +25,7 @@ import org.intermine.model.InterMineObject;
 import org.intermine.util.DynamicUtil;
 import org.intermine.api.solr.SolrSearchResult;
 import org.intermine.web.logic.config.WebConfig;
+import org.intermine.objectstore.ObjectStoreException;
 
 /**
  * The bits of the search infrastructure that belong in the web-package because
@@ -53,24 +54,30 @@ public final class SearchUtils
     public static Collection<KeywordSearchResult> parseResults(
             InterMineAPI im,
             WebConfig webconfig,
-            Collection<SolrSearchResult> searchHits) {
+            Collection<SolrSearchResult> searchHits) throws ObjectStoreException {
         long time = System.currentTimeMillis();
         Model model = im.getModel();
         Map<String, List<FieldDescriptor>> classKeys = im.getClassKeys();
         Vector<KeywordSearchResult> searchResultsParsed = new Vector<KeywordSearchResult>();
         LinkRedirectManager redirector = im.getLinkRedirector();
-        for (SolrSearchResult keywordSearchHit : searchHits) {
-            Class<?> objectClass = DynamicUtil.getSimpleClass(keywordSearchHit.getObject()
-                    .getClass());
-            ClassDescriptor classDescriptor = model.getClassDescriptorByName(objectClass.getName());
-            InterMineObject o = keywordSearchHit.getObject();
-            String linkRedirect = null;
-            if (redirector != null) {
-                linkRedirect = redirector.generateLink(im, o);
+        try {
+            for (SolrSearchResult keywordSearchHit : searchHits) {
+                keywordSearchHit.setObject(im.getObjectStore().getObjectById(keywordSearchHit.getObjectId()));
+
+                Class<?> objectClass = DynamicUtil.getSimpleClass(keywordSearchHit.getObject()
+                        .getClass());
+                ClassDescriptor classDescriptor = model.getClassDescriptorByName(objectClass.getName());
+                InterMineObject o = keywordSearchHit.getObject();
+                String linkRedirect = null;
+                if (redirector != null) {
+                    linkRedirect = redirector.generateLink(im, o);
+                }
+                KeywordSearchResult ksr = new KeywordSearchResult(webconfig, o, classKeys,
+                        classDescriptor, keywordSearchHit.getScore(), null, linkRedirect);
+                searchResultsParsed.add(ksr);
             }
-            KeywordSearchResult ksr = new KeywordSearchResult(webconfig, o, classKeys,
-                    classDescriptor, keywordSearchHit.getScore(), null, linkRedirect);
-            searchResultsParsed.add(ksr);
+        } catch(ObjectStoreException e) {
+            LOG.error("Failed to find object from search");
         }
         LOG.debug("Parsing search hits took " + (System.currentTimeMillis() - time)  + " ms");
         return searchResultsParsed;
