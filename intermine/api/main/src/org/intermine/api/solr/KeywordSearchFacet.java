@@ -1,4 +1,4 @@
-package org.intermine.api.lucene;
+package org.intermine.api.solr;
 
 /*
  * Copyright (C) 2002-2016 FlyMine
@@ -12,8 +12,6 @@ package org.intermine.api.lucene;
 
 import java.util.List;
 
-import com.browseengine.bobo.api.BrowseFacet;
-
 /**
  * container for one faceting field, the current faceting value and the list of
  * possible items
@@ -24,7 +22,7 @@ public class KeywordSearchFacet
     final String field;
     final String name;
     final String value;
-    final List<BrowseFacet> items;
+    final List<String> items;
 
     /**
      * constructor
@@ -35,9 +33,9 @@ public class KeywordSearchFacet
      * @param value
      *            current value selected by user (or null)
      * @param items
-     *            list of possible values and their counts as BrowseFacets
+     *            list of possible values and their counts as String
      */
-    public KeywordSearchFacet(String field, String name, String value, List<BrowseFacet> items) {
+    public KeywordSearchFacet(String field, String name, String value, List<String> items) {
         super();
         this.field = field;
         this.name = name;
@@ -73,7 +71,7 @@ public class KeywordSearchFacet
      * list of all values and counts
      * @return items
      */
-    public List<BrowseFacet> getItems() {
+    public List<String> getItems() {
         return items;
     }
 }

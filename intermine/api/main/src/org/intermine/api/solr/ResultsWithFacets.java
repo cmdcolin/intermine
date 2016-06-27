@@ -1,4 +1,4 @@
-package org.intermine.api.lucene;
+package org.intermine.api.solr;
 
 /*
  * Copyright (C) 2002-2016 FlyMine
@@ -11,7 +11,6 @@ package org.intermine.api.lucene;
  */
 
 import java.util.Collection;
-
 /**
  * A class that wraps both a collection of hits and a collection of facets.
  * @author Alex Kalderimis
@@ -20,7 +19,7 @@ import java.util.Collection;
 public class ResultsWithFacets
 {
 
-    private final Collection<KeywordSearchHit> results;
+    private final Collection<SolrSearchResult> results;
     private int totalHits;
     private final Collection<KeywordSearchFacet> facets;
 
@@ -30,7 +29,7 @@ public class ResultsWithFacets
      * @param totalHits count of search results
      */
     public ResultsWithFacets(
-            Collection<KeywordSearchHit> results,
+            Collection<SolrSearchResult> results,
             Collection<KeywordSearchFacet> facets,
             int totalHits) {
         this.results = results;
@@ -39,7 +38,7 @@ public class ResultsWithFacets
     }
 
     /** @return the hits **/
-    public Collection<KeywordSearchHit> getHits() {
+    public Collection<SolrSearchResult> getHits() {
         return results;
     }
 
