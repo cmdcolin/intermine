@@ -28,8 +28,6 @@ import org.intermine.api.bag.UnknownBagTypeException;
 import org.intermine.api.config.ClassKeyHelper;
 import org.intermine.api.search.CreationEvent;
 import org.intermine.api.search.DeletionEvent;
-import org.intermine.api.search.SearchRepository;
-import org.intermine.api.search.UserRepository;
 import org.intermine.api.search.WebSearchable;
 import org.intermine.api.tag.TagTypes;
 import org.intermine.api.template.ApiTemplate;
@@ -76,7 +74,6 @@ public class Profile
     // was ListOrderedMap() - but that is the same as a LinkedHashMap.
 
     protected boolean savingDisabled;
-    private SearchRepository searchRepository;
     private String token;
     private Map<String, String> preferences;
     @SuppressWarnings("unchecked")
@@ -120,7 +117,6 @@ public class Profile
         if (savedTemplates != null) {
             this.savedTemplates.putAll(savedTemplates);
         }
-        searchRepository = new UserRepository(this);
         this.token = token;
         if (this.userId != null) {
             // preferences backed by DB.
@@ -368,7 +364,6 @@ public class Profile
         if (manager != null && !savingDisabled) {
             manager.saveProfile(this);
         }
-        searchRepository.receiveEvent(new CreationEvent(template));
     }
 
     /**
@@ -401,7 +396,6 @@ public class Profile
                 }
             }
 
-            searchRepository.receiveEvent(new DeletionEvent(template));
 
             TagManager tagManager = getTagManager();
             tagManager.deleteObjectTags(name, TagTypes.TEMPLATE, username);
@@ -640,7 +634,6 @@ public class Profile
             throw new RuntimeException("No name specified for the list to save.");
         }
         savedBags.put(name, bag);
-        searchRepository.receiveEvent(new CreationEvent(bag));
     }
 
     /**
@@ -780,7 +773,6 @@ public class Profile
             throw bte;
         }
         if (!oldName.equals(template.getName())) {
-            searchRepository.receiveEvent(new DeletionEvent(old));
             moveTagsToNewObject(oldName, template.getName(), TagTypes.TEMPLATE);
         }
     }
@@ -821,14 +813,6 @@ public class Profile
             return getSavedBags();
         }
         throw new RuntimeException("unknown type: " + type);
-    }
-
-    /**
-     * Get the SearchRepository for this Profile.
-     * @return the SearchRepository for the user
-     */
-    public SearchRepository getSearchRepository() {
-        return searchRepository;
     }
 
 
@@ -890,15 +874,6 @@ public class Profile
      */
     public Map<String, InterMineBag> getSharedBags() {
         return getSharedBagManager().getSharedBags(this);
-    }
-
-    /**
-     * Update the user repository with the sharedbags
-     */
-    public void updateUserRepositoryWithSharedBags() {
-        if (searchRepository instanceof UserRepository) {
-            ((UserRepository) searchRepository).updateUserRepositoryWithSharedBags();
-        }
     }
 
     /**

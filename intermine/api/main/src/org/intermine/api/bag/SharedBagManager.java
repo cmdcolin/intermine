@@ -478,7 +478,6 @@ public final class SharedBagManager
 
     private void informProfileOfChange(final String name, final ChangeEvent evt) {
         if (profileManager.isProfileCached(name)) {
-            profileManager.getProfile(name).getSearchRepository().receiveEvent(evt);
         }
     }
 

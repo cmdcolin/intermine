@@ -292,7 +292,6 @@ class ProfileManagerHandler extends DefaultHandler
                     }
                 }
             }
-            profile.getSearchRepository().receiveEvent(new MassTaggingEvent());
             profileHandler = null;
             long totalTime = System.currentTimeMillis() - startTime;
             LOG.info("Finished profile: " + profile.getUsername() + " took " + totalTime + "ms.");
