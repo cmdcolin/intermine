@@ -24,7 +24,6 @@ import org.apache.struts.action.ActionMessage;
 import org.intermine.api.InterMineAPI;
 import org.intermine.api.profile.Profile;
 import org.intermine.api.profile.ProfileManager;
-import org.intermine.api.search.GlobalRepository;
 import org.intermine.web.logic.session.SessionMethods;
 
 /**
@@ -78,16 +77,11 @@ public class ModifySuperUserAction extends InterMineAction
             if (superUsersList.contains(user)) {
                 if (!profileToUpdate.isSuperuser()) {
                     profileToUpdate.setSuperuser(true);
-                    SessionMethods.setGlobalSearchRepository(session.getServletContext(),
-                        new GlobalRepository(profileToUpdate));
                 }
             } else {
                 if (!user.equals(suInProperties) && !user.equals(userLogged)) {
                     if (profileToUpdate.isSuperuser()) {
                         profileToUpdate.setSuperuser(false);
-                        GlobalRepository globalRepository = (GlobalRepository) SessionMethods
-                            .getGlobalSearchRepository(session.getServletContext());
-                        globalRepository.deleteGlobalRepository(profileToUpdate);
                     }
                 }
             }

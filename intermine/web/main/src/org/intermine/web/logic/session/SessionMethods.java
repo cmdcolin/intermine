@@ -38,7 +38,6 @@ import org.intermine.api.profile.SavedQuery;
 import org.intermine.api.query.PathQueryExecutor;
 import org.intermine.api.query.WebResultsExecutor;
 import org.intermine.api.results.WebResults;
-import org.intermine.api.search.SearchRepository;
 import org.intermine.api.util.NameUtil;
 import org.intermine.metadata.Model;
 import org.intermine.model.InterMineObject;
@@ -1040,25 +1039,7 @@ public final class SessionMethods
         session.removeAttribute(Constants.QUERY);
     }
 
-    /**
-     * Get the SearchRepository for global (public) objects.
-     *
-     * @param context the servlet context
-     * @return the singleton SearchRepository object
-     */
-    public static SearchRepository getGlobalSearchRepository(ServletContext context) {
-        return (SearchRepository) context.getAttribute(Constants.GLOBAL_SEARCH_REPOSITORY);
-    }
 
-    /**
-     * Set the SearchRepository for global (public) objects in the servlet context.
-     *
-     * @param context the servlet context
-     * @param repo the SearchRepository object
-     */
-    public static void setGlobalSearchRepository(ServletContext context, SearchRepository repo) {
-        context.setAttribute(Constants.GLOBAL_SEARCH_REPOSITORY, repo);
-    }
 
     /**
      * Get the InterMineAPI which provides access to core features of an InterMine application.

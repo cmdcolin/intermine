@@ -60,8 +60,6 @@ import org.intermine.api.profile.ProfileManager;
 import org.intermine.api.profile.TagManager;
 import org.intermine.api.profile.UserNotFoundException;
 import org.intermine.api.query.MainHelper;
-import org.intermine.api.search.GlobalRepository;
-import org.intermine.api.search.SearchRepository;
 import org.intermine.api.tag.TagNames;
 import org.intermine.api.tag.TagTypes;
 import org.intermine.api.tracker.Tracker;
@@ -200,8 +198,6 @@ public class InitialiserPlugin implements PlugIn
             throw new ServletException("Could not read from userprofile data store", e);
         }
 
-        initSearch(servletContext, superProfile);
-
         servletContext.setAttribute(Constants.GRAPH_CACHE, new HashMap<String, String>());
 
         cleanTags(im.getTagManager());
@@ -211,18 +207,6 @@ public class InitialiserPlugin implements PlugIn
         doRegistration(webProperties);
 
         LOG.debug("Application initialised in " + (System.currentTimeMillis() - start) + "ms");
-    }
-
-    private void initSearch(final ServletContext servletContext,
-            final Profile superProfile) {
-        // index global webSearchables
-        SearchRepository searchRepository = new GlobalRepository(superProfile);
-        List<String> users = profileManager.getSuperUsers();
-        for (String su : users) {
-            new GlobalRepository(profileManager.getProfile(su));
-        }
-        SessionMethods.setGlobalSearchRepository(servletContext, searchRepository);
-        LOG.debug("LOADED SEARCH REPOSITORY");
     }
 
     private void initSuperUser(final Profile superProfile) {

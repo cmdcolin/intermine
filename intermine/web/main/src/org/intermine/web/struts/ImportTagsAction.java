@@ -77,17 +77,6 @@ public class ImportTagsAction extends InterMineAction
         }
         recordMessage(new ActionMessage("history.importedTags", new Integer(count)), request);
 
-        // We can't know what the tags were, or indeed what exactly what
-        // was tagged, and thus be more fine grained about
-        // this notification.
-        if (count > 0) {
-            ChangeEvent e = new MassTaggingEvent();
-            profile.getSearchRepository().receiveEvent(e);
-            if (SessionMethods.isSuperUser(session)) {
-                SessionMethods.getGlobalSearchRepository(session.getServletContext())
-                              .receiveEvent(e);
-            }
-        }
         f.reset();
         return mapping.findForward("success");
     }
