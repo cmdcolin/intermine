@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Iterator;
+import java.util.Arrays;
 import java.util.Properties;
 
 import org.apache.tools.ant.BuildException;
@@ -23,6 +25,21 @@ import org.intermine.metadata.FieldDescriptor;
 import org.intermine.objectstore.ObjectStore;
 import org.intermine.objectstore.ObjectStoreFactory;
 import org.intermine.objectstore.intermine.ObjectStoreInterMineImpl;
+import org.intermine.metadata.ClassDescriptor;
+
+
+
+import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.response.UpdateResponse;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.intermine.objectstore.query.Query;
+import org.intermine.objectstore.query.QueryClass;
+import org.intermine.objectstore.query.QueryField;
+import org.intermine.objectstore.query.Results;
+import org.intermine.objectstore.query.ResultsRow;
+
 
 /**
  * Create a the Lucene keyword search index for a mine.
@@ -83,35 +100,80 @@ public class CreateSearchIndexTask extends Task
 
     @Override
     public void execute() {
-        System .out.println("Creating lucene index for keyword search...");
-
-        ObjectStore objectStore;
         try {
+            System .out.println("Creating lucene index for keyword search...");
+
+            ObjectStore objectStore;
             objectStore = getObjectStore();
+            
+            if (!(objectStore instanceof ObjectStoreInterMineImpl)) {
+                // Yes, yes, this is horrific...
+                throw new RuntimeException("Got invalid ObjectStore - must be an "
+                        + "instance of ObjectStoreInterMineImpl!");
+            }
+
+
+            String urlString = "http://localhost:8983/solr/new_core2";
+            SolrClient solr = new HttpSolrClient(urlString);
+
+
+
+            //read class keys to figure out what are keyFields during indexing
+            InputStream is = getClassLoader().getResourceAsStream("class_keys.properties");
+            Properties classKeyProperties = new Properties();
+            try {
+                classKeyProperties.load(is);
+            } catch (NullPointerException e) {
+                throw new BuildException("Could not find the class keys");
+            } catch (IOException e) {
+                throw new BuildException("Could not read the class keys", e);
+            }
+            Map<String, List<FieldDescriptor>> classKeys =
+                ClassKeyHelper.readKeys(objectStore.getModel(), classKeyProperties);
+
+            // hardcode field to index
+            String fieldName = "primaryIdentifier";
+
+            for(String className : classKeys.keySet()) {
+                System.out.println("Indexing: "+className);
+                ClassDescriptor cld = os.getModel().getClassDescriptorByName(className);
+                if (cld == null) {
+                    throw new RuntimeException("a class mentioned in ObjectStore summary properties "
+                                               + "file (" + className + ") is not in the model");
+                }
+                String classAndField = cld.getUnqualifiedName() + "." + fieldName;
+                System.out .println("Indexing " + classAndField);
+
+
+                Query q = new Query();
+                q.setDistinct(true);
+                QueryClass qc = new QueryClass(Class.forName(cld.getName()));
+                q.addToSelect(new QueryField(qc, fieldName));
+                q.addToSelect(new QueryField(qc, "id"));
+                q.addFrom(qc);
+                Results results = os.execute(q);
+
+                for (Object resRow: results) {
+                    @SuppressWarnings("rawtypes")
+                    SolrInputDocument document = new SolrInputDocument();
+                    Object fieldValue = ((ResultsRow) resRow).get(0);
+                    Object fieldId = ((ResultsRow) resRow).get(1);
+                    if(fieldValue!=null) {
+                        document.addField("value", fieldValue.toString());
+                        document.addField("type", classAndField);
+                        document.addField("objectId", fieldId.toString());
+                        System.out.println(classAndField + " " + fieldValue.toString() + " " + fieldId.toString()+" "+classAndField);
+                    }
+                    else {
+                        System.out.println("ERROR?" + " "+fieldValue+ " "+fieldId+" "+classAndField);
+                    }
+                    UpdateResponse response = solr.add(document);
+                }
+                solr.commit();
+            }
         } catch (Exception e) {
             throw new BuildException(e);
         }
-        if (!(objectStore instanceof ObjectStoreInterMineImpl)) {
-            // Yes, yes, this is horrific...
-            throw new RuntimeException("Got invalid ObjectStore - must be an "
-                    + "instance of ObjectStoreInterMineImpl!");
-        }
-
-        //read class keys to figure out what are keyFields during indexing
-        InputStream is = getClassLoader().getResourceAsStream("class_keys.properties");
-        Properties classKeyProperties = new Properties();
-        try {
-            classKeyProperties.load(is);
-        } catch (NullPointerException e) {
-            throw new BuildException("Could not find the class keys");
-        } catch (IOException e) {
-            throw new BuildException("Could not read the class keys", e);
-        }
-        Map<String, List<FieldDescriptor>> classKeys =
-            ClassKeyHelper.readKeys(objectStore.getModel(), classKeyProperties);
-
-        //index and save
-        //TODO store in solr
         //KeywordSearch.saveIndexToDatabase(objectStore, classKeys);
         //KeywordSearch.deleteIndexDirectory();
     }
