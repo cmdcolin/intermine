@@ -133,6 +133,14 @@ public class CreateSearchIndexTask extends Task
 
             // hardcode field to index
             String fieldName = "primaryIdentifier";
+            classKeys.remove("DataSet");
+            classKeys.remove("DataSource");
+            classKeys.remove("GOTerm");
+            classKeys.remove("SOTerm");
+            classKeys.remove("OntologyTerm");
+            classKeys.remove("Organism");
+            classKeys.remove("Author");
+            classKeys.remove("Publication");
 
             for(String className : classKeys.keySet()) {
                 System.out.println("Indexing: "+className);
