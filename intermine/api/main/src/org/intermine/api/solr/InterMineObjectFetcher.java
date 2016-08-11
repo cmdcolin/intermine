@@ -1,4 +1,4 @@
-package org.intermine.api.lucene;
+package org.intermine.api.solr;
 
 /*
  * Copyright (C) 2002-2016 FlyMine
@@ -23,8 +23,6 @@ import java.util.Map.Entry;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.intermine.api.config.ClassKeyHelper;
 import org.intermine.metadata.AttributeDescriptor;
 import org.intermine.metadata.ClassDescriptor;
@@ -52,7 +50,7 @@ import org.intermine.util.ObjectPipe;
 
 /**
  * thread to fetch all intermineobjects (with exceptions) from database, create
- * a lucene document for them, add references (if applicable) and put the final
+ * a solr document for them, add references (if applicable) and put the final
  * document in the indexing queue
  * @author nils
  */
